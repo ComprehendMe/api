@@ -2,7 +2,7 @@
   "name": "api",
   "version": "1.0.50",
   "scripts": {
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/app.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",

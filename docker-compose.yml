@@ -1,0 +1,26 @@
+name: cogniAI
+
+services:
+  pg:
+    image: bitnami/postgresql
+    ports:
+      - "2508:5432"
+    environment:
+        POSTGRES_USER: docker
+        POSTGRES_PASSWORD: docker
+        POSTGRES_DB: cogniAI
+    volumes:
+      - pg-data:/var/lib/postgresql/pg-data
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    ports:
+      - "6500:6379"
+    ulimits:
+      memlock: -1
+    volumes:
+      - dragonflydata:/data
+    command: ["--proactor_threads=4", "--maxmemory=1gb"]
+
+volumes:
+   pg-data:
+   dragonflydata:

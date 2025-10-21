@@ -1,4 +1,4 @@
-import { createApp } from ".";
+import { createApp } from "./entry";
 import { env } from "./common/env";
 import { routify } from "./common/routify";
 
@@ -8,7 +8,6 @@ await routify(app);
 
 
 app.listen(env.PORT, async () => {
-
   app.decorator.readyAt = Date.now();
   console.log(`Cogni AI is running on ${env.PORT}`);
 })
