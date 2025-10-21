@@ -15,5 +15,5 @@ datasource db {
 }
 
 model User {
-  id 
+  id        BigInt    @id
 }

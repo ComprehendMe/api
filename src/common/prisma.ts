@@ -11,6 +11,16 @@ import {
 export class PrismaCached {
   constructor(host: string, port: number) {
     PrismaCached.init(host, port)
+    /*
+prisma.$use(async (params, next) => {                                                                                        │
+ │  7   if (params.model === 'User' && params.action === 'create') {                                                               │
+ │  8     params.args.data.id = genSnow();                                                                                         │
+ │  9   }                                                                                                                          │
+ │ 10   return next(params);                                                                                                       │
+ │ 11 });                                                                                                                          │
+ │ 12                                                                                                                              │
+ │ 13 export default prisma;                                                                                                       │
+      */
   }
 
   private static async init(host: string, port: number) {
