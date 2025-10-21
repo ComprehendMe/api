@@ -2,11 +2,15 @@
   "name": "api",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "elysia": "latest"
+    "@prisma/client": "^6.17.1",
+    "elysia": "latest",
+    "envalid": "^8.1.0",
+    "ioredis": "^5.8.1",
+    "prisma": "^6.17.1",
+    "prisma-extension-redis": "^2.1.1"
   },
   "devDependencies": {
     "bun-types": "latest"

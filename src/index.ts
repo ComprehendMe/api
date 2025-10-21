@@ -1,7 +1,11 @@
 import { Elysia } from "elysia";
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+export const createApp = async () => {
+  const app = new Elysia()
+    .decorate("readyAt", Date.now())
+    .get("/", () => "Hello Elysia");
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+  return app;
+}
+
+
