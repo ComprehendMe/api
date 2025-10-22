@@ -24,16 +24,17 @@ export const genSnow = () => {
   if (timestamp === lastTimestamp) {
     sequence = (sequence + 1n) & maxSequence;
 
-    sequence === 0n ? timestamp = lastTimestamp + 1n : sequence = 0n
-    lastTimestamp = timestamp;
+    if (sequence === 0n) timestamp = lastTimestamp + 1n;
+  } else sequence = 0n;
 
-    return (
-      ((timestamp - EPOCH) << (workerBits + sequenceBits)) |
-      (workerId << sequenceBits) |
-      sequence
-    );
-  }
-};
+  lastTimestamp = timestamp;
+
+  return (
+    ((timestamp - EPOCH) << (workerBits + sequenceBits)) |
+    (workerId << sequenceBits) |
+    sequence
+  );
+}
 
 export const getSnowCreation = (snowflake: bigint) => {
   return Number((snowflake >> (workerBits + sequenceBits)) + EPOCH);
