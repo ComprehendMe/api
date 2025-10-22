@@ -16,4 +16,24 @@ datasource db {
 
 model User {
   id        BigInt    @id
+  authId        String    @unique
+  firstName String @map("first_name")
+  lastName String @map("last_name")
+  email String @unique
+  password String
+
+  @@map("users")
+}
+
+model Session {
+  id        BigInt    @id
+  ip String
+  hash String
+  expiresAt Date @map("expires_at")
+
+  @@map("sessions")
+}
+
+model Chat {
+  id        BigInt    @id
 }
