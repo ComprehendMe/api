@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -29,7 +28,7 @@ model Session {
   id        BigInt    @id
   ip String
   hash String
-  expiresAt Date @map("expires_at")
+  expiresAt DateTime @map("expires_at")
 
   @@map("sessions")
 }

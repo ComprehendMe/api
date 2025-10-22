@@ -6,7 +6,7 @@ import { PrismaClient } from "@prisma/client";
 
 export const createApp = async () => {
   const app = new Elysia()
-    .decorate("readyAt", Date.now())
+    .decorate("readyAt", 0)
     .decorate("db", new PrismaClient())
 
   return app;

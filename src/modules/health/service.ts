@@ -8,7 +8,7 @@ export class HealthService {
 
     const [db, cache] = await Promise.allSettled([
       timestamp(() => dragonfly.ping()),
-      timestamp(() => prisma),
+      timestamp(() => prisma.$queryRaw`SELECT 'salve'`),
     ]);
 
 
