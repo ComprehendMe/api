@@ -6,4 +6,6 @@ export const env = e.cleanEnv(process.env, {
 
   REDIS_HOST: e.str(),
   REDIS_PORT: e.num(),
+
+  JWT_SECRET: e.str(),
 })
