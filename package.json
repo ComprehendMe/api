@@ -6,10 +6,12 @@
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",
+    "@types/nodemailer": "^7.0.2",
     "elysia": "latest",
     "envalid": "^8.1.0",
     "fast-jwt": "^6.0.2",
     "ioredis": "^5.8.1",
+    "nodemailer": "^7.0.9",
     "prisma": "^6.17.1",
     "prisma-extension-redis": "^2.1.1"
   },

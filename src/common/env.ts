@@ -8,4 +8,9 @@ export const env = e.cleanEnv(process.env, {
   REDIS_PORT: e.num(),
 
   JWT_SECRET: e.str(),
+
+  SMTP_USER: e.str(),
+  SMTP_PASS: e.str(),
+  SMTP_PORT: e.port(),
+  SMTP_HOST: e.str(),
 })
