@@ -4,11 +4,9 @@ import { env } from "../common/env";
 import { Parse } from '@sinclair/typebox/value';
 import { t } from "elysia";
 
-const FIFTY_MINUTES_IN_MS = 100 * 60 * 15
 
 const key = env.JWT_SECRET;
 
-const sign = createSigner({ key, expiresIn: FIFTY_MINUTES_IN_MS, });
 const verifier = createVerifier({ key })
 
 export type JWTPayload = { id: bigint, email: string }
@@ -18,30 +16,36 @@ const AUTH_SCHEMA = t.Object({
   email: t.String({ format: "email" })
 })
 
-export const verify = (token: string) => {
-  try {
-    Parse(AUTH_SCHEMA, verifier(token))
-  } catch (error) {
-    console.log(error)
+export namespace Auth {
+  export const FIFTY_MINUTES_IN_MS = 100 * 60 * 15
+  export const sign = createSigner({ key, expiresIn: FIFTY_MINUTES_IN_MS, });
+
+  export const verify = (token: string) => {
+    try {
+      return Parse(AUTH_SCHEMA, verifier(token))
+    } catch (error) {
+      console.log(error)
+    }
   }
-}
 
-export const genAccessToken = (payload: JWTPayload) => {
-  const { id, email } = payload;
+  export const genAccessToken = (payload: JWTPayload) => {
+    const { id, email } = payload;
 
-  return sign({ id: String(id), email });
-}
-
-export const hashRefreshToken = (token: string) => {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export const genRefreshToken = () => {
-  const token = randomBytes(40).toString("hex");
-
-  return {
-    refresh: token,
-    hash: hashRefreshToken(token),
+    return sign({ id: String(id), email });
   }
+
+  export const hashRefreshToken = (token: string) => {
+    return createHash("sha256").update(token).digest("hex");
+  }
+
+  export const genRefreshToken = () => {
+    const token = randomBytes(40).toString("hex");
+
+    return {
+      refresh: token,
+      hash: hashRefreshToken(token),
+    }
+  }
+
 }
 

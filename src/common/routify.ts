@@ -8,7 +8,6 @@ export const routify = async (app: AnyElysia) => {
   for await (const path of scanned) {
     const { route } = await import(path);
 
-    if (typeof route !== "function") continue;
     route(app);
   }
 };
