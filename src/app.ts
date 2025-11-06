@@ -2,6 +2,7 @@ import { createApp } from "./entry";
 import { env } from "./common/env";
 import { routify } from "./common/routify";
 import chalk from "chalk";
+import { prisma } from "./common/prisma";
 
 export const app = await createApp();
 
@@ -9,7 +10,7 @@ await routify(app);
 
 app.listen(env.PORT, async () => {
   app.decorator.readyAt = Date.now();
-  app.decorator.db.$connect();
+  prisma.$connect();
 
   console.log(chalk.blueBright(`Cogni AI is running on ${env.PORT}`));
 })

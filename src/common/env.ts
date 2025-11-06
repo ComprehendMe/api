@@ -14,8 +14,9 @@ export const env = e.cleanEnv(process.env, {
   SMTP_PORT: e.port(),
   SMTP_HOST: e.str(),
 
-  MINIO_ACCESS_KEY: e.str(),
-  MINIO_SECRET_KEY: e.str(),
-  MINIO_ENDPOINT: e.str(),
-  MINIO_BUCKET: e.str(),
+  R2_ACCESS_KEY: e.str(),
+  R2_SECRET_KEY: e.str(),
+  R2_ENDPOINT: e.str(),
+  R2_BUCKET: e.str(),
+  R2_PUBLIC_URL: e.str(),
 })

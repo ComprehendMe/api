@@ -20,6 +20,7 @@ model User {
   lastName String @map("last_name")
   email String @unique
   password String
+  chats     Chat[]
 
   @@map("users")
 }
@@ -35,4 +36,28 @@ model Session {
 
 model Chat {
   id        BigInt    @id
+  userId    BigInt
+  user      User      @relation(fields: [userId], references: [id])
+  title     String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  messages  Message[]
+
+  @@map("chats")
+}
+
+model Message {
+  id        BigInt    @id
+  chatId    BigInt
+  chat      Chat      @relation(fields: [chatId], references: [id])
+  role      String
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("messages")
+}
+
+model Bot {
+
+  @@map("bots")
 }
