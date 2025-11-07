@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto"
 import { prisma } from "../../common/prisma";
-import { Auth } from "../../config/auth";
+import { Auth, FIFTEEN_DAYS_IN_MS } from "../../config/auth";
 import { dragonfly, FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
 import { genSnow } from "../../common/snow";
 import { env } from "../../common/env";
+import { httpMessages } from "../../common/request/messages";
 
 type Provider = "google";
 
@@ -76,7 +77,7 @@ export class SessionService {
         id: genSnow(),
         os,
         browser,
-        expiresAt: new Date(),
+        expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
         hash,
         ip,
         userId: user.id,
@@ -128,7 +129,7 @@ export class SessionService {
         id: genSnow(),
         os,
         browser,
-        expiresAt: new Date(),
+        expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
         hash,
         ip,
         userId: user.id,
@@ -159,9 +160,84 @@ export class SessionService {
     return `https://${AUTH0_DOMAIN}/authorize?${params.toString()}`;
   }
 
+  public static async handleAuth0Callback({
+    code,
+    ip,
+    os,
+    browser,
+  }: {
+    code: string;
+    ip: string;
+    os: string;
+    browser: string;
+  }) {
+    const { AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_CALLBACK_URL } = env;
+
+    const tokenResponse = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        client_id: AUTH0_CLIENT_ID,
+        client_secret: AUTH0_CLIENT_SECRET,
+        code: code,
+        redirect_uri: AUTH0_CALLBACK_URL,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to exchange authorization code for tokens');
+    }
+
+    const { access_token } = await tokenResponse.json();
+
+    const userinfoResponse = await fetch(`https://${AUTH0_DOMAIN}/userinfo`, {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    if (!userinfoResponse.ok) {
+      throw new Error('Failed to fetch user info');
+    }
+
+    const userinfo = await userinfoResponse.json();
+    const {
+      email,
+      sub: googleId,
+      given_name: firstName,
+      family_name: lastName,
+      avatar
+    } = userinfo;
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      create: { id: genSnow(), email, firstName, lastName, avatar, googleId },
+      update: { googleId, firstName, lastName, avatar },
+      select: { id: true, email: true },
+    });
+
+    if (!user)
+      throw new Error(httpMessages.DATABASE_ERROR);
+
+    const { refresh, hash } = Auth.genRefreshToken();
+    const access = Auth.genAccessToken(user);
+
+    await prisma.session.create({
+      data: {
+        id: genSnow(),
+        os,
+        browser,
+        expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
+        hash,
+        ip,
+        userId: user.id,
+      },
+    });
+
+    return { access, refresh };
+  }
+
   public static async refresh(token?: string) {
     if (!token) throw new Error("Missing token")
-    //verificar se o token é válido
     const hashed = Auth.hashRefreshToken(token);
 
     const session = await prisma.session.findFirst({

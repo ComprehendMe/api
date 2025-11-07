@@ -3,11 +3,12 @@ import { app } from "../../app";
 import { SessionService } from "./service";
 import { prisma } from "../../common/prisma";
 import { dragonfly, FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
-import { Auth } from "../../config/auth";
+import { Auth, FIFTEEN_DAYS_IN_MS, FIFTEEN_MIN_IN_MS } from "../../config/auth";
 import { mail } from "../../common/mail";
 import { SessionModel } from "./model";
 import { ID_SCHEMA } from "../../common/snow";
 import { http } from "../../common/request/codes";
+import { isProd } from "../../entry";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/sessions", (group) => {
@@ -69,8 +70,20 @@ export const route = (elysia: typeof app) => {
           ip,
         });
 
-        cookie.refresh.value = refresh;
-        cookie.accesss.value = access;
+
+        cookie.refresh.set({
+          value: refresh,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_DAYS_IN_MS
+        });
+
+        cookie.access.set({
+          value: access,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_MIN_IN_MS
+        });
 
         set.status = http.Created;
       },
@@ -93,8 +106,19 @@ export const route = (elysia: typeof app) => {
           ip,
         });
 
-        cookie.refresh.value = refresh;
-        cookie.access.value = access;
+        cookie.refresh.set({
+          value: refresh,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_DAYS_IN_MS
+        });
+
+        cookie.access.set({
+          value: access,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_MIN_IN_MS
+        });
 
         set.status = http.Created;
       },
@@ -110,8 +134,19 @@ export const route = (elysia: typeof app) => {
           cookie.refresh.value
         );
 
-        cookie.refresh.value = refresh;
-        cookie.access.value = access;
+        cookie.refresh.set({
+          value: refresh,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_DAYS_IN_MS
+        });
+
+        cookie.access.set({
+          value: access,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_MIN_IN_MS
+        });
 
         set.status = http.Success;
       },
@@ -162,6 +197,50 @@ export const route = (elysia: typeof app) => {
         cookie: t.Object({
           access: t.String(),
           refresh: t.String(),
+        }),
+      }
+    );
+
+    group.get("/oauth/google", async ({ set }) => {
+      const redirectURL = await SessionService.authWithProvider("google");
+      set.redirect = redirectURL;
+    });
+
+    group.get(
+      "/oauth/google/callback",
+      async ({ query, request, cookie, ip, set }) => {
+        const { os, browser } = await Auth.verifyAgent(
+          request.headers.get("user-agent") || ""
+        );
+
+        const { access, refresh } = await SessionService.handleAuth0Callback({
+          code: query.code as string,
+          ip,
+          os,
+          browser,
+        });
+
+        cookie.refresh.set({
+          value: refresh,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_DAYS_IN_MS
+        });
+
+        cookie.access.set({
+          value: access,
+          httpOnly: true,
+          secure: isProd,
+          maxAge: FIFTEEN_MIN_IN_MS
+        });
+
+        set.status = http.Created;
+        set.redirect = "/"; // Redirect to home page or a success page
+      },
+      {
+        query: t.Object({
+          code: t.String(),
+          state: t.String(), // Auth0 sends a state parameter
         }),
       }
     );

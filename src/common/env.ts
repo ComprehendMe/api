@@ -3,6 +3,7 @@ import * as e from "envalid"
 export const env = e.cleanEnv(process.env, {
   PORT: e.port(),
   DATABASE_URL: e.url(),
+  NODE_ENV: e.str({ default: "dev" }),
 
   REDIS_HOST: e.str(),
   REDIS_PORT: e.num(),
@@ -20,9 +21,9 @@ export const env = e.cleanEnv(process.env, {
   AUTH0_AUDIENCE: e.str(),
   AUTH0_CALLBACK_URL: e.str(),
 
-  R2_ACCESS_KEY: e.str(),
-  R2_SECRET_KEY: e.str(),
-  R2_ENDPOINT: e.str(),
-  R2_BUCKET: e.str(),
-  R2_PUBLIC_URL: e.str(),
+  BUCKET_ACCESS_KEY: e.str(),
+  BUCKET_SECRET_KEY: e.str(),
+  BUCKET_ENDPOINT: e.str(),
+  BUCKET_NAME: e.str(),
+  BUCKET_PUBLIC_URL: e.str(),
 })

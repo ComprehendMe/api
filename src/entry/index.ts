@@ -2,7 +2,9 @@ import { Elysia } from "elysia";
 import { ip } from "elysia-ip";
 import { Auth } from "../config/auth";
 import openapi from "@elysiajs/openapi";
+import { env } from "../common/env";
 
+export const isProd = env.NODE_ENV === "prod";
 export const createApp = async () => {
   const app = new Elysia({ name: 'cogniAI' })
     .use(ip())

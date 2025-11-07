@@ -22,6 +22,9 @@ const AUTH_SCHEMA = t.Object({
   email: t.String({ format: "email" })
 })
 
+export const FIFTEEN_MIN_IN_MS = 900000;
+export const FIFTEEN_DAYS_IN_MS = 1.296e9; //dps decidir esse intervalo
+
 export namespace Auth {
   export const FIFTY_MINUTES_IN_MS = 100 * 60 * 15
   export const sign = createSigner({ key, expiresIn: FIFTY_MINUTES_IN_MS, });
