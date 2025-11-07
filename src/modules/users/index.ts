@@ -1,5 +1,5 @@
 import { app } from "../../app";
-import { Minio } from "../../common/minio";
+import { Minio } from "../../common/bucket";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/users", (gp) => {
