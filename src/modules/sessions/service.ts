@@ -133,10 +133,8 @@ export class SessionService {
     params.append('scope', 'openid profile email');
     params.append('audience', AUTH0_AUDIENCE);
 
-    if (provider) {
-      const connection = provider === 'google' ? 'google-oauth2' : 'GitHub';
-      params.append('connection', connection);
-    }
+    //WARN: Change later to support more providers
+    if (provider === 'google') params.append('connection', 'google-oauth2');
 
     return `https://${AUTH0_DOMAIN}/authorize?${params.toString()}`;
   }
