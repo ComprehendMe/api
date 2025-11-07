@@ -1,9 +1,7 @@
-import { t } from "elysia";
 import { app } from "../../app";
 import { Bucket } from "../../common/bucket";
 import { prisma } from "../../common/prisma";
 import { http } from "../../common/request/codes";
-import { ID_SCHEMA } from "../../common/snow";
 import { env } from "../../common/env";
 
 export const route = (elysia: typeof app) => {
