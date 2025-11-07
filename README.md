@@ -97,19 +97,7 @@ Sessão ativa em Redis, persistência em PostgreSQL, chat processado via Gemini 
 | PostgreSQL   | Dados persistentes         |
 | Redis        | Cache, sessões, fila       |
 | Gemini API   | IA generativa              |
-| MinIO        | Armazenamento de ficheiros |
-
----
-
-## 5. Segurança e Boas Práticas
-
-- Passwords encriptadas (bcrypt)
-- JWT com expiração e validação contínua
-- Autorização por propriedade
-- Rate limiting (futuro)
-- Validação de inputs
-- Logs de operações críticas
-- HTTPS em produção
+| R2 OR S3        | Armazenamento de arquivos |
 
 ---
 
@@ -147,7 +135,7 @@ GEMINI_API_KEY=
    ```powershell
    bun run api
    ```
-6. Acesse `http://localhost:80/swagger` para explorar endpoints.
+6. Acesse `http://localhost:<PORT>/docs` para explorar endpoints.
 
 ---
 
@@ -171,11 +159,4 @@ api/
 
 ---
 
-## 9. Contribuindo
 
-1. Faça fork do projeto
-2. Crie uma branch para sua feature
-3. Faça commit das alterações
-4. Execute os testes
-5. Faça push para a branch
-6. Abra um Pull Request

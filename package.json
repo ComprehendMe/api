@@ -9,8 +9,8 @@
     "@aws-sdk/client-s3": "^3.925.0",
     "@aws-sdk/s3-request-presigner": "^3.925.0",
     "@elysiajs/openapi": "^1.4.11",
+    "@elysiajs/swagger": "^1.3.1",
     "@prisma/client": "^6.17.1",
-    "@types/nodemailer": "^7.0.2",
     "aws4": "^1.13.2",
     "chalk": "^5.6.2",
     "elysia": "latest",
@@ -25,6 +25,7 @@
     "useragent": "^2.3.0"
   },
   "devDependencies": {
+    "@types/nodemailer": "^7.0.2",
     "@biomejs/biome": "^2.3.4",
     "@types/aws4": "^1.11.6",
     "@types/useragent": "^2.3.4",
