@@ -20,6 +20,7 @@ model User {
   lastName String @map("last_name")
   email String @unique
   password String
+  avatar String?
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 

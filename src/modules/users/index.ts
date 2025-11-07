@@ -1,5 +1,6 @@
 import { app } from "../../app";
-import { Minio } from "../../common/bucket";
+import { Bucket } from "../../common/bucket";
+import { prisma } from "../../common/prisma";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/users", (gp) => {
@@ -12,8 +13,14 @@ export const route = (elysia: typeof app) => {
 
     gp.post(
       '/avatar',
-      async ({ }) => {
-        const url = await Minio.genPresignedUrl('');
+      //@ts-expect-error
+      async ({ user: { id: userId } }) => {
+        const { hash, route } = await Bucket.genPresignedUrl(`avatars/${userId}`);
+        await prisma.user.update({
+          data: {
+            avatar: route,
+          }
+        })
         return url;
       }
     )
