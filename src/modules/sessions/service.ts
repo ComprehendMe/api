@@ -223,7 +223,7 @@ export class SessionService {
     }
 
     try {
-      await prisma.session.findMany({
+      await prisma.session.deleteMany({
         where,
       });
       return { ok: true }
@@ -231,5 +231,23 @@ export class SessionService {
       console.log(error);
       return { ok: false }
     }
+  }
+
+  public static async logout(token: string) {
+    const hash = Auth.hashRefreshToken(token);
+
+    const session = await prisma.session.findFirst({
+      where: {
+        hash,
+      },
+    });
+
+    if (!session) throw new Error("Invalid refresh token");
+
+    await prisma.session.delete({
+      where: {
+        id: session.id,
+      },
+    });
   }
 }

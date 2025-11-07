@@ -84,18 +84,67 @@ export const route = (elysia: typeof app) => {
       }
     )
 
-    group.delete(
-      '/logout',
-      async ({ cookie }) => {
+    group.post(
+      "/login",
+      async ({ body, request, cookie, ip }) => {
+        const { os, browser } = await Auth.verifyAgent(
+          request.headers.get("user-agent") || ""
+        );
 
+        const { access, refresh } = await SessionService.login({
+          ...body,
+          os,
+          browser,
+          ip,
+        });
+
+        cookie.refresh.value = refresh;
+        cookie.access.value = access;
+      },
+      {
+        body: t.Object({
+          email: t.String({ format: "email" }),
+          password: t.String(),
+        }),
+      }
+    );
+
+    group.post(
+      "/refresh",
+      async ({ cookie }) => {
+        const { access, refresh } = await SessionService.refresh(
+          cookie.refresh.value
+        );
+
+        cookie.refresh.value = refresh;
+        cookie.access.value = access;
       },
       {
         cookie: t.Object({
           access: t.String(),
           refresh: t.String(),
-        })
+        }),
       }
-    )
+    );
+
+    group.get("/me", async ({ user }) => user);
+
+    group.delete(
+      "/logout",
+      async ({ cookie }) => {
+        await SessionService.logout(cookie.refresh.value);
+
+        cookie.access.remove();
+        cookie.refresh.remove();
+      },
+      {
+        cookie: t.Object({
+          access: t.String(),
+          refresh: t.String(),
+        }),
+      }
+    );
+
     return group;
-  })
-}
+  });
+};
