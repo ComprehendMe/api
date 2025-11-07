@@ -12,6 +12,7 @@
     "aws4": "^1.13.2",
     "chalk": "^5.6.2",
     "elysia": "latest",
+    "elysia-ip": "^1.0.10",
     "envalid": "^8.1.0",
     "fast-jwt": "^6.0.2",
     "ioredis": "^5.8.1",

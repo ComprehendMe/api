@@ -1,7 +1,7 @@
-import { randomBytes } from "node:crypto"
+import { randomBytes, Sign } from "node:crypto"
 import { prisma } from "../../common/prisma";
 import { Auth } from "../../config/auth";
-import { dragonfly } from "../../common/dragonfly";
+import { dragonfly, FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
 import { genSnow } from "../../common/snow";
 import { env } from "../../common/env";
 
@@ -23,30 +23,34 @@ type UserPayload = {
 }
 
 type SignupOptions = UserPayload & {
+  code: string;
   ip: string;
   os: string;
   browser: string;
 }
 
 export class SessionService {
-  public genCode() {
+  public static genCode() {
     return randomBytes(3).toString('hex').toUpperCase();
   };
 
-  public async resendCode() {
+  public static async resendCode(email: string) {
+    const REDIS_KEY = `sessions:${email}`;
+    if (await dragonfly.get<SignupOptions>(REDIS_KEY))
+      throw new Error("Code already sent. Please check your email.");
 
+    const code = this.genCode();
+
+    await dragonfly.setex(REDIS_KEY, FIVE_MINUTES_IN_SECONDS, code);
   }
 
-  public async signup(code: string) {
-    const REDIS_KEY = `codes:${code}`;
+  public static async signup({ email, browser, firstName, ip, lastName, os, password, code }: SignupOptions) {
+    const REDIS_KEY = `codes:${email}`;
 
-    const data = await dragonfly.get<SignupOptions>(REDIS_KEY);
-    if (!data) throw new Error("Invalid or expired code");
-
-    const { browser, ip, os, email, firstName, lastName, password } = data;
+    const storedCode = await dragonfly.get(REDIS_KEY);
+    if (!storedCode || storedCode !== code) throw new Error("Invalid or expired code");
 
     await dragonfly.del(REDIS_KEY);
-
 
     const user = await prisma.user.create({
       data: {
@@ -58,6 +62,7 @@ export class SessionService {
       },
       select: { id: true, email: true }
     });
+
     if (!user)
       throw new Error("Error to create user");
 
@@ -78,7 +83,8 @@ export class SessionService {
 
     return { access, refresh };
   }
-  public async login({
+
+  public static async login({
     browser,
     email,
     ip,
@@ -118,7 +124,7 @@ export class SessionService {
     return { access, refresh };
   }
 
-  public async authWithProvider(provider: Provider) {
+  public static async authWithProvider(provider: Provider) {
     const {
       AUTH0_CALLBACK_URL,
       AUTH0_CLIENT_ID,
@@ -139,7 +145,7 @@ export class SessionService {
     return `https://${AUTH0_DOMAIN}/authorize?${params.toString()}`;
   }
 
-  async refresh(token?: string) {
+  public static async refresh(token?: string) {
     if (!token) throw new Error("Missing token")
     //verificar se o token é válido
     const hashed = Auth.hashRefreshToken(token);
@@ -179,7 +185,7 @@ export class SessionService {
     return { refresh, access };
   }
 
-  async list(userId: bigint, limit?: number) {
+  public static async list(userId: bigint, limit?: number) {
     let where: any = { where: { userId } }
 
     if (limit) where = {
@@ -201,7 +207,7 @@ export class SessionService {
     }
   }
 
-  async delete(userId: bigint, sessionId?: bigint) {
+  public static async delete(userId: bigint, sessionId?: bigint) {
     let where: any = {
       userId,
       expiresAt: {

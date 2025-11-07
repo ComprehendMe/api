@@ -3,7 +3,13 @@ import { createSigner, createVerifier } from "fast-jwt";
 import { env } from "../common/env";
 import { Parse } from '@sinclair/typebox/value';
 import { t } from "elysia";
+import useragent from 'useragent';
 
+
+export type UserMetadata = {
+  os: string;
+  browser: string;
+}
 
 const key = env.JWT_SECRET;
 
@@ -35,6 +41,7 @@ export namespace Auth {
   }
 
   export const hashRefreshToken = (token: string) => {
+
     return createHash("sha256").update(token).digest("hex");
   }
 
@@ -47,5 +54,14 @@ export namespace Auth {
     }
   }
 
+  export const verifyAgent = async (header?: string): Promise<UserMetadata> => {
+    const agent = useragent.parse(header) ?? null;
+    if (agent.os.toString() === 'Other' && agent.toString() === 'Other') throw new Error('Cannot parse user agent');
+
+    return {
+      os: agent.os.toString(),
+      browser: agent.toString(),
+    }
+  }
 }
 

@@ -11,6 +11,7 @@
         "aws4": "^1.13.2",
         "chalk": "^5.6.2",
         "elysia": "latest",
+        "elysia-ip": "^1.0.10",
         "envalid": "^8.1.0",
         "fast-jwt": "^6.0.2",
         "ioredis": "^5.8.1",
@@ -298,6 +299,8 @@
     "effect": ["effect@3.16.12", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "fast-check": "^3.23.1" } }, "sha512-N39iBk0K71F9nb442TLbTkjl24FLUzuvx2i1I2RsEAQsdAdUTuUoW0vlfUXgkMTUOnYqKnWcFfqw4hK4Pw27hg=="],
 
     "elysia": ["elysia@1.4.12", "", { "dependencies": { "cookie": "^1.0.2", "exact-mirror": "0.2.2", "fast-decode-uri-component": "^1.0.1" }, "peerDependencies": { "@sinclair/typebox": ">= 0.34.0 < 1", "file-type": ">= 20.0.0", "openapi-types": ">= 12.0.0", "typescript": ">= 5.0.0" }, "optionalPeers": ["typescript"] }, "sha512-wbd0BkrobsjWSloIfYeF3f7G7rR0UWMa6tuLUhf6ZvwjiCEX3FVfhDsM+KaqqRRxkZpPDw42q4yIZlBLyE32ww=="],
+
+    "elysia-ip": ["elysia-ip@1.0.10", "", { "peerDependencies": { "elysia": ">= 1.0.9" } }, "sha512-xmCxPOl4266sq6CLk5d82P3BZOatG9z0gMP473cYEnORssuopbEI8GAwpOhiaz69X76AOrkYgvCdLkqMJC49dQ=="],
 
     "empathic": ["empathic@2.0.0", "", {}, "sha512-i6UzDscO/XfAcNYD75CfICkmfLedpyPDdozrLMmQc5ORaQcdMoc21OnlEylMIqI7U8eniKrPMxxtj8k0vhmJhA=="],
 

@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { ip } from "elysia-ip";
 //import { env } from "../common / env";
 import { PrismaClient } from "@prisma/client";
 import { Auth } from "../config/auth";
@@ -7,6 +8,7 @@ import { Auth } from "../config/auth";
 
 export const createApp = async () => {
   const app = new Elysia()
+    .use(ip())
     .decorate("readyAt", 0)
 
     .derive(({ request, cookie: { access }, set }) => {
