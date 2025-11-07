@@ -17,10 +17,12 @@
     "ioredis": "^5.8.1",
     "nodemailer": "^7.0.9",
     "prisma": "^6.17.1",
-    "prisma-extension-redis": "^2.1.1"
+    "prisma-extension-redis": "^2.1.1",
+    "useragent": "^2.3.0"
   },
   "devDependencies": {
     "@types/aws4": "^1.11.6",
+    "@types/useragent": "^2.3.4",
     "bun-types": "latest"
   },
   "module": "src/index.js"

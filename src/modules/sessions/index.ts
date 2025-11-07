@@ -1,18 +1,26 @@
 import { t } from "elysia";
 import { app } from "../../app";
-import { FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
+import { SessionService } from "./service";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/sessions", (group) => {
-    group.post("/signup", async () => {
-      return "OK"
-    }, {
-      body: t.Object({
-        firs
-        email: t.String({ format: 'email' }),
-        password: t.String(),
-      })
-    })
+    group.post(
+      "/signup",
+      async ({ body }) => {
+        const { email, firstName, lastName, password } = body;
+
+        const salve = await SessionService
+
+      },
+      {
+        body: t.Object({
+          firstName: t.String(),
+          lastName: t.String(),
+          email: t.String({ format: 'email' }),
+          password: t.String(), //TODO: add password validation
+        })
+      }
+    )
 
     group.post("/signup/:code", async () => {
       return "OK"
