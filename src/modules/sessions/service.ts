@@ -1,4 +1,4 @@
-import { randomBytes, Sign } from "node:crypto"
+import { randomBytes } from "node:crypto"
 import { prisma } from "../../common/prisma";
 import { Auth } from "../../config/auth";
 import { dragonfly, FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
@@ -28,6 +28,8 @@ type SignupOptions = UserPayload & {
   os: string;
   browser: string;
 }
+
+export const MAX_SESSIONS_PER_USER = 5;
 
 export class SessionService {
   public static genCode() {
@@ -105,6 +107,18 @@ export class SessionService {
     const isValid = await Bun.password.verify(password, user.password!);
     if (!isValid)
       throw new Error("Invalid password");
+
+    const sessionCount = await prisma.session.count({ where: { userId: user.id } });
+
+    if (sessionCount >= MAX_SESSIONS_PER_USER) {
+      const oldestSession = await prisma.session.findFirst({
+        where: { userId: user.id },
+        orderBy: { id: 'asc' }
+      });
+      if (oldestSession) {
+        await prisma.session.delete({ where: { id: oldestSession.id } });
+      }
+    }
 
     const { refresh, hash } = Auth.genRefreshToken();
     const access = Auth.genAccessToken(user);

@@ -1,4 +1,7 @@
+import { t } from "elysia";
 import { hostname } from "node:os";
+
+export const ID_SCHEMA = t.Transform(t.String()).Decode(BigInt).Encode(String);
 
 const workerBits = 10n;
 const sequenceBits = 12n;
