@@ -207,7 +207,7 @@ export const route = (elysia: typeof app) => {
     });
 
     group.get(
-      "/oauth/google/callback",
+      "/oauth/cb",
       async ({ query, request, cookie, ip, set }) => {
         const { os, browser } = await Auth.verifyAgent(
           request.headers.get("user-agent") || ""

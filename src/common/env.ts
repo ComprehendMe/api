@@ -10,16 +10,14 @@ export const env = e.cleanEnv(process.env, {
 
   JWT_SECRET: e.str(),
 
-  SMTP_USER: e.str(),
-  SMTP_PASS: e.str(),
-  SMTP_PORT: e.port(),
-  SMTP_HOST: e.str(),
-
   AUTH0_CLIENT_ID: e.str(),
   AUTH0_CLIENT_SECRET: e.str(),
   AUTH0_DOMAIN: e.str(),
   AUTH0_AUDIENCE: e.str(),
   AUTH0_CALLBACK_URL: e.str(),
+
+  RESEND_SECRET_KEY: e.str(),
+  SMTP_USER: e.email(),
 
   BUCKET_ACCESS_KEY: e.str(),
   BUCKET_SECRET_KEY: e.str(),
