@@ -26,7 +26,8 @@ export const route = (elysia: typeof app) => {
           throw exception(
             httpCodes[http.BadRequest],
             http.BadRequest,
-            { message: "A magic link has already been sent to this email. Please check your inbox." });
+            "A magic link has already been sent to this email. Please check your inbox."
+          );
         }
 
         const hasEmailTaken = await prisma.user.findUnique({

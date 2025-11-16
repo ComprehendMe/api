@@ -8,6 +8,7 @@ export const route = (elysia: typeof app) => {
   elysia.group("/users", (gp) => {
     gp.get(
       '/@me',
+      //@ts-expect-error
       async ({ user: { id: userId }, set }) => {
         const user = await prisma.user.findFirst({
           where: {
@@ -34,6 +35,7 @@ export const route = (elysia: typeof app) => {
 
     gp.post(
       '/avatar',
+      //@ts-expect-error
       async ({ user: { id: userId }, set }) => {
         const { hash, route } = await Bucket.genPresignedUrl(`avatars/${userId}`);
         await prisma.user.update({
@@ -47,12 +49,12 @@ export const route = (elysia: typeof app) => {
 
         set.status = httpCodes[http.Success];
         return { route };
-
       }
     )
 
     gp.delete(
       '/avatar',
+      //@ts-expect-error
       async ({ user: { id: userId }, set }) => {
 
         const user = await prisma.user.findFirst({

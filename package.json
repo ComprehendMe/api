@@ -3,7 +3,7 @@
   "version": "1.0.50",
   "scripts": {
     "dev": "bun run --watch src/app.ts",
-    "migrate": "drizzle-kit generate && drizzle-kit migrate",
+    "migrate": "prisma generate && prisma migrate dev",
     "test": "bun run src/test/index.test.ts",
     "seed": "bun run prisma/seed.ts"
   },

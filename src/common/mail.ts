@@ -20,5 +20,8 @@ export const mail = async ({ to, html, subject, text }: MailOptions) => {
     html: html ?? ''
   })
 
-  if (error) throw new Error('Error to send mail');
+  if (error) {
+    console.log(error);
+    throw new Error('Error to send mail');
+  }
 }
