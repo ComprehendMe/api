@@ -25,4 +25,27 @@ export namespace SessionModel {
     email: t.String({ format: 'email' }),
     password: t.String(),
   });
+  export type Provider = "google";
+
+  export type PayloadOptions = {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }
+
+  export type SignupOptions = {
+    token: string;
+    ip: string;
+    os: string;
+    browser: string;
+  }
+
+  export type LoginOptions = {
+    email: string;
+    password: string;
+    ip: string;
+    os: string;
+    browser: string;
+  }
 }

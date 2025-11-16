@@ -4,22 +4,8 @@ import { Auth, FIFTEEN_DAYS_IN_MS } from "../../config/auth";
 import { dragonfly, FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
 import { genSnow } from "../../common/snow";
 import { env } from "../../common/env";
-
-type Provider = "google";
-
-type PayloadOptions = {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-}
-
-type SignupOptions = {
-  token: string;
-  ip: string;
-  os: string;
-  browser: string;
-}
+import { SessionModel } from "./model";
+import { exception, http, httpCodes } from "../../common/request";
 
 export const MAX_SESSIONS_PER_USER = 5;
 
@@ -28,22 +14,21 @@ export class SessionService {
     return randomBytes(32).toString('hex');
   };
 
-  public static async signup({ browser, ip, os, token }: SignupOptions) {
+  public static async signup({ browser, ip, os, token }: SessionModel.SignupOptions) {
     const SIGNUP_DATA_KEY = `signup:${token}`;
-    const storedPayload = await dragonfly.get<PayloadOptions>(SIGNUP_DATA_KEY);
-    
+    const storedPayload = await dragonfly.get<SessionModel.PayloadOptions>(SIGNUP_DATA_KEY);
+
     if (!storedPayload) {
-      throw new Error("Invalid or expired magic link");
+      throw exception(httpCodes[http.BadRequest], http.BadRequest, "Invalid or expired magic link");
     }
 
-    // Delete the token so it can't be used again
     dragonfly.del(SIGNUP_DATA_KEY);
 
     const { email, firstName, lastName, password } = storedPayload;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      throw new Error("Email already taken");
+      throw exception(httpCodes[http.BadRequest], http.BadRequest, "Email already taken");
     }
 
     const user = await prisma.user.create({
@@ -58,7 +43,7 @@ export class SessionService {
     });
 
     if (!user)
-      throw new Error("Error to create user");
+      throw exception(httpCodes[http.InternalServerError], http.InternalServerError, "Error to create user");
 
     const { refresh, hash } = Auth.genRefreshToken();
     const access = Auth.genAccessToken(user);
@@ -84,7 +69,7 @@ export class SessionService {
     ip,
     os,
     password
-  }: LoginOptions) {
+  }: SessionModel.LoginOptions) {
     const user = await prisma.user.findFirst({
       where: { email },
       select: {
@@ -94,11 +79,11 @@ export class SessionService {
       }
     });
     if (!user)
-      throw new Error("Invalid email or password");
+      throw exception(httpCodes[http.Unauthorized], http.Unauthorized, "Invalid email or password");
 
     const isValid = await Bun.password.verify(password, user.password!);
     if (!isValid)
-      throw new Error("Invalid password");
+      throw exception(httpCodes[http.Unauthorized], http.Unauthorized, "Invalid password");
 
     const sessionCount = await prisma.session.count({ where: { userId: user.id } });
 
@@ -130,7 +115,7 @@ export class SessionService {
     return { access, refresh };
   }
 
-  public static async authWithProvider(provider: Provider) {
+  public static async authWithProvider(provider: SessionModel.Provider) {
     const {
       AUTH0_CALLBACK_URL,
       AUTH0_CLIENT_ID,
@@ -145,7 +130,6 @@ export class SessionService {
     params.append('scope', 'openid profile email');
     params.append('audience', AUTH0_AUDIENCE);
 
-    //WARN: Change later to support more providers
     if (provider === 'google') params.append('connection', 'google-oauth2');
 
     return `https://${AUTH0_DOMAIN}/authorize?${params.toString()}`;
@@ -177,7 +161,7 @@ export class SessionService {
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange authorization code for tokens');
+      throw exception(httpCodes[http.InternalServerError], http.InternalServerError, 'Failed to exchange authorization code for tokens');
     }
 
     const { access_token } = await tokenResponse.json();
@@ -187,7 +171,7 @@ export class SessionService {
     });
 
     if (!userinfoResponse.ok) {
-      throw new Error('Failed to fetch user info');
+      throw exception(httpCodes[http.InternalServerError], http.InternalServerError, 'Failed to fetch user info');
     }
 
     const userinfo = await userinfoResponse.json();
@@ -207,7 +191,11 @@ export class SessionService {
     });
 
     if (!user)
-      throw new Error(httpMessages.DATABASE_ERROR);
+      throw exception(
+        httpCodes[http.InternalDatabaseError],
+        http.InternalDatabaseError,
+        'Internal Database Error'
+      );
 
     const { refresh, hash } = Auth.genRefreshToken();
     const access = Auth.genAccessToken(user);
@@ -228,7 +216,7 @@ export class SessionService {
   }
 
   public static async refresh(token?: string) {
-    if (!token) throw new Error("Missing token")
+    if (!token) throw exception(httpCodes[http.Unauthorized], http.Unauthorized, "Missing token");
     const hashed = Auth.hashRefreshToken(token);
 
     const session = await prisma.session.findFirst({
@@ -237,7 +225,7 @@ export class SessionService {
       },
     });
 
-    if (!session) throw new Error('Invalid refresh token');
+    if (!session) throw exception(httpCodes[http.Unauthorized], http.Unauthorized, "Invalid refresh token");
 
     const user = await prisma.user.findFirst({
       where: {
@@ -249,7 +237,7 @@ export class SessionService {
       }
     });
 
-    if (!user) throw new Error("Unknown User");
+    if (!user) throw exception(httpCodes[http.InternalServerError], http.InternalServerError, "Unknown User");
 
     const { hash, refresh } = Auth.genRefreshToken();
     const access = Auth.genAccessToken(user)
@@ -282,9 +270,9 @@ export class SessionService {
           userId
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.log(error)
-      throw error;
+      throw exception(httpCodes[http.InternalServerError], http.InternalServerError, error.message);
     }
   }
 
@@ -323,7 +311,7 @@ export class SessionService {
       },
     });
 
-    if (!session) throw new Error("Invalid refresh token");
+    if (!session) throw exception(httpCodes[http.Unauthorized], http.Unauthorized, "Invalid refresh token");
 
     await prisma.session.delete({
       where: {

@@ -44,5 +44,25 @@ export const httpMessages: Record<http, string> = {
 export const exception = (
   status: number,
   code: http,
-  errors?: unknown,
-) => genStatus(httpCodeToText[status], { code, errors, message: httpMessages[code] });
+  customMessageOrDetails?: string | { message: string, [key: string]: any },
+) => {
+  let finalMessage: string;
+  let finalErrors: unknown | undefined;
+
+  if (typeof customMessageOrDetails === 'string') {
+    finalMessage = customMessageOrDetails;
+    finalErrors = undefined;
+  } else if (typeof customMessageOrDetails === 'object' && customMessageOrDetails !== null && 'message' in customMessageOrDetails && typeof customMessageOrDetails.message === 'string') {
+    finalMessage = customMessageOrDetails.message;
+    finalErrors = customMessageOrDetails;
+  } else {
+    finalMessage = httpMessages[code];
+    finalErrors = customMessageOrDetails;
+  }
+
+  return genStatus(httpCodeToText[status], {
+    code,
+    message: finalMessage,
+    errors: finalErrors,
+  });
+};
