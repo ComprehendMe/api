@@ -10,6 +10,7 @@ type MailOptions = {
   html?: string;
 }
 
+//WARN: ta dando erro
 export const mail = async ({ to, html, subject, text }: MailOptions) => {
   const { error } = await resend.emails.send({
     to: [to],

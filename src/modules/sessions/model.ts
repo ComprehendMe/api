@@ -1,17 +1,9 @@
 import { t } from "elysia";
-import Type from "typebox";
 
 export namespace SessionModel {
-  export const PASSWORD_SCHEMA = Type.Refine(
-    t.String({ minLength: 6, maxLengt2h: 30 }),
-    (value) => {
-      const hasNumber = /\d/.test(value);
-      const hasUppercase = /[A-Z]/.test(value);
-      const onlyAllowedChars = /^[a-zA-Z0-9@]*$/.test(value);
-      return hasNumber && hasUppercase && onlyAllowedChars;
-    },
-    "The password must contain at least one number, one uppercase letter, and only '@' as a special character."
-  );
+  export const PASSWORD_SCHEMA = t.RegExp(/^(?=.*[A-Z])(?=.*[0-9])[a-zA-Z0-9@]{6,30}$/, {
+    error: "The password must be 6-30 characters long, contain at least one number, one uppercase letter, and only '@' as a special character."
+  });
 
   export const SIGNUP_SCHEMA = t.Object({
     firstName: t.String(),

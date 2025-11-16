@@ -1,10 +1,11 @@
 import { app } from "../../app";
 import { dragonfly } from "../../common/dragonfly";
+import { prisma } from "../../common/prisma";
 
 export class HealthService {
   public static async check() {
     const { timestamp } = HealthService;
-    const { db: prisma, readyAt: readyNum } = app.decorator;
+    const { readyAt: readyNum } = app.decorator;
 
     const [db, cache] = await Promise.allSettled([
       timestamp(() => dragonfly.ping()),

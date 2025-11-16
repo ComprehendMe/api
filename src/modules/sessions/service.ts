@@ -8,6 +8,8 @@ import { httpMessages } from "../../common/request/messages";
 
 type Provider = "google";
 
+type PayloadOptions = { password: string, firstName: string, lastName: string }
+
 type LoginOptions = {
   email: string;
   password: string;
@@ -23,7 +25,8 @@ type UserPayload = {
   password: string;
 }
 
-type SignupOptions = UserPayload & {
+type SignupOptions = {
+  email: string;
   code: string;
   ip: string;
   os: string;
@@ -47,13 +50,19 @@ export class SessionService {
     await dragonfly.setex(REDIS_KEY, FIVE_MINUTES_IN_SECONDS, code);
   }
 
-  public static async signup({ email, browser, firstName, ip, lastName, os, password, code }: SignupOptions) {
-    const REDIS_KEY = `codes:${email}`;
+  public static async signup({ browser, ip, os, code, email }: SignupOptions) {
 
-    const storedCode = await dragonfly.get(REDIS_KEY);
-    if (!storedCode || storedCode !== code) throw new Error("Invalid or expired code");
+    const REDIS_KEY = `signup:${email}`;
+    const storedPayload = await dragonfly.get<PayloadOptions>(REDIS_KEY) as PayloadOptions;
+    const { firstName, lastName, password } = storedPayload;
+    if (!storedPayload) throw new Error("Invalid or expired code");
 
-    await dragonfly.del(REDIS_KEY);
+    dragonfly.del(REDIS_KEY)
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new Error("Email already taken");
+    }
 
     const user = await prisma.user.create({
       data: {

@@ -18,10 +18,13 @@ export const route = (elysia: typeof app) => {
         await Auth.verifyAgent(request.headers.get("user-agent") || "");
 
         const { email } = body;
-        const REDIS_KEY = `codes:${email}`;
-        const existingCode = await dragonfly.get<string>(REDIS_KEY);
+        const PENDING_KEY = `signup:${email}`;
+        const isPending = await dragonfly.get(PENDING_KEY);
 
-        if (existingCode) return { status: 400, body: { message: "Code already sent. Please check your email." } };
+        if (isPending) {
+          set.status = http.BadRequest;
+          return { message: "A confirmation code has already been sent to this email. Please check your inbox." };
+        }
 
         const hasEmailTaken = await prisma.user.findUnique({
           where: { email },
@@ -29,22 +32,23 @@ export const route = (elysia: typeof app) => {
         });
 
         if (hasEmailTaken) {
-          return { status: http.BadRequest, body: { message: "Email already taken" } };
+          set.status = http.BadRequest;
+          return { message: "Email already taken" };
         }
 
-        const code = SessionService.genCode();
-
+        const url = new URL();
         await Promise.all([
-          dragonfly.setex(REDIS_KEY, FIVE_MINUTES_IN_SECONDS, code),
+          dragonfly.setex(SIGNUP_DATA_KEY, FIVE_MINUTES_IN_SECONDS, JSON.stringify(body)),
+          dragonfly.setex(PENDING_KEY, FIVE_MINUTES_IN_SECONDS, code),
           mail({
             to: email,
-            subject: "Your Signup Code",
-            text: `Your signup code is: ${code}. It will expire in 5 minutes.`,
+            subject: "Welcome to Cogni AI",
+            text: `Click here to log in: <a href="${url}">Click.</a> It will expire in 5 minutes.`,
           }),
         ]);
 
         set.status = http.Created;
-        return { ok: true };
+        return { ok: true, message: "Confirmation code sent to your email." };
       },
       {
         body: SessionModel.SIGNUP_SCHEMA,
@@ -53,18 +57,15 @@ export const route = (elysia: typeof app) => {
 
     group.post(
       "/signup/:code",
-      async ({ params, body, request, cookie, ip, set }) => {
+      async ({ params, request, cookie, ip, set, body }) => {
         const { os, browser } = await Auth.verifyAgent(request.headers.get("user-agent") || "");
 
+        const { email } = body;
         const { code } = params;
-        const { email, firstName, lastName, password } = body;
 
         const { access, refresh } = await SessionService.signup({
-          email,
-          firstName,
-          lastName,
-          password,
           code,
+          email,
           os,
           browser,
           ip,
@@ -88,7 +89,12 @@ export const route = (elysia: typeof app) => {
         set.status = http.Created;
       },
       {
-        body: SessionModel.SIGNUP_SCHEMA,
+        body: t.Object({
+          email: t.String({ format: 'email' })
+        }),
+        params: t.Object({
+          code: t.String(),
+        }),
       }
     )
 
