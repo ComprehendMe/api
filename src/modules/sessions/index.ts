@@ -61,6 +61,11 @@ export const route = (elysia: typeof app) => {
       },
       {
         body: SessionModel.SIGNUP_SCHEMA,
+        detail: {
+          summary: "User Signup",
+          description: "Initiates the signup process by sending a magic link to the user's email.",
+          tags: ["Sessions"]
+        }
       }
     )
 
@@ -100,6 +105,11 @@ export const route = (elysia: typeof app) => {
         query: t.Object({
           token: t.String(),
         }),
+        detail: {
+          summary: "Verify Signup Token",
+          description: "Verifies the magic link token to complete the signup process.",
+          tags: ["Sessions"]
+        }
       }
     )
 
@@ -138,7 +148,12 @@ export const route = (elysia: typeof app) => {
         }
       },
       {
-        body: SessionModel.LOGIN_SCHEMA
+        body: SessionModel.LOGIN_SCHEMA,
+        detail: {
+          summary: "User Login",
+          description: "Logs in a user and returns session tokens.",
+          tags: ["Sessions"]
+        }
       }
     );
 
@@ -174,6 +189,11 @@ export const route = (elysia: typeof app) => {
           access: t.String(),
           refresh: t.String(),
         }),
+        detail: {
+          summary: "Refresh Access Token",
+          description: "Refreshes an expired access token using a valid refresh token.",
+          tags: ["Sessions"]
+        }
       }
     );
 
@@ -200,6 +220,11 @@ export const route = (elysia: typeof app) => {
         params: t.Object({
           id: ID_SCHEMA
         }),
+        detail: {
+          summary: "Get Session by ID",
+          description: "Retrieves details for a specific user session.",
+          tags: ["Sessions"]
+        }
       }
     )
 
@@ -223,12 +248,23 @@ export const route = (elysia: typeof app) => {
           access: t.String(),
           refresh: t.String(),
         }),
+        detail: {
+          summary: "User Logout",
+          description: "Logs out the user by invalidating the refresh token.",
+          tags: ["Sessions"]
+        }
       }
     );
 
     group.get("/oauth/google", async ({ set }) => {
       const redirectURL = await SessionService.authWithProvider("google");
       set.redirect = redirectURL;
+    }, {
+      detail: {
+        summary: "Google OAuth Login",
+        description: "Initiates the Google OAuth2 login flow.",
+        tags: ["Sessions"]
+      }
     });
 
     group.get(
@@ -271,6 +307,11 @@ export const route = (elysia: typeof app) => {
           code: t.String(),
           state: t.String(), // Auth0 sends a state parameter
         }),
+        detail: {
+          summary: "OAuth Callback",
+          description: "Handles the callback from the OAuth provider.",
+          tags: ["Sessions"]
+        }
       }
     );
 

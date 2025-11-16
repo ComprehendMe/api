@@ -8,7 +8,6 @@ export const route = (elysia: typeof app) => {
   elysia.group("/users", (gp) => {
     gp.get(
       '/@me',
-      //@ts-expect-error
       async ({ user: { id: userId }, set }) => {
         const user = await prisma.user.findFirst({
           where: {
@@ -30,12 +29,18 @@ export const route = (elysia: typeof app) => {
 
         set.status = httpCodes[http.Success];
         return { avatar: `${env.BUCKET_PUBLIC_URL}/avatars/${avatar}.webp`, email, firstName, lastName };
+      },
+      {
+        detail: {
+          summary: "Get Current User",
+          description: "Retrieves the profile information of the currently authenticated user.",
+          tags: ["Users"]
+        }
       }
     )
 
     gp.post(
       '/avatar',
-      //@ts-expect-error
       async ({ user: { id: userId }, set }) => {
         const { hash, route } = await Bucket.genPresignedUrl(`avatars/${userId}`);
         await prisma.user.update({
@@ -49,12 +54,18 @@ export const route = (elysia: typeof app) => {
 
         set.status = httpCodes[http.Success];
         return { route };
+      },
+      {
+        detail: {
+          summary: "Generate Avatar Upload URL",
+          description: "Generates a presigned URL for uploading a new user avatar.",
+          tags: ["Users"]
+        }
       }
     )
 
     gp.delete(
       '/avatar',
-      //@ts-expect-error
       async ({ user: { id: userId }, set }) => {
 
         const user = await prisma.user.findFirst({
@@ -81,6 +92,13 @@ export const route = (elysia: typeof app) => {
 
         set.status = httpCodes[http.Success];
         return { ok };
+      },
+      {
+        detail: {
+          summary: "Delete User Avatar",
+          description: "Deletes the current user's avatar.",
+          tags: ["Users"]
+        }
       }
     )
 

@@ -23,6 +23,7 @@ export const createApp = async () => {
             { name: "Chats", description: "Endpoints related to project management." },
             { name: "Messages", description: "Endpoints related to message handling within chats." },
             { name: "AI", description: "Endpoints related to AI model interactions." },
+            { name: "Health", description: "Endpoint related to Application Health." },
           ]
         },
       })
@@ -33,12 +34,11 @@ export const createApp = async () => {
 
       const NON_AUTH_ROUTES = [
         '/health',
-        '/docs',
         '/sessions/signup',
         '/sessions/login',
       ];
 
-      if (NON_AUTH_ROUTES.includes(path)) return {};
+      if (path.startsWith('/docs') || NON_AUTH_ROUTES.includes(path)) return {};
 
       if (!access.value) {
         set.status = 401;
