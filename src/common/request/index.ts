@@ -46,23 +46,38 @@ export const exception = (
   code: http,
   customMessageOrDetails?: string | { message: string, [key: string]: any },
 ) => {
-  let finalMessage: string;
-  let finalErrors: unknown | undefined;
-
   if (typeof customMessageOrDetails === 'string') {
-    finalMessage = customMessageOrDetails;
-    finalErrors = undefined;
-  } else if (typeof customMessageOrDetails === 'object' && customMessageOrDetails !== null && 'message' in customMessageOrDetails && typeof customMessageOrDetails.message === 'string') {
-    finalMessage = customMessageOrDetails.message;
-    finalErrors = customMessageOrDetails;
-  } else {
-    finalMessage = httpMessages[code];
-    finalErrors = customMessageOrDetails;
+    return genStatus(httpCodeToText[status], {
+      code,
+      message: customMessageOrDetails,
+      errors: undefined,
+    });
   }
 
+  const customMessageType =
+    typeof customMessageOrDetails === 'object' &&
+    customMessageOrDetails !== null
+  const customMessageKey =
+    'message' in customMessageOrDetails &&
+    typeof (customMessageOrDetails as any).message === 'string'
+
+  if (
+    customMessageType &&
+    customMessageKey &&
+    typeof (customMessageOrDetails as any).message === 'string'
+  ) {
+    //@ts-expect-error
+    return genStatus(httpCodeToText[status], {
+      code,
+      message: (customMessageOrDetails as any).message,
+      errors: customMessageOrDetails,
+    });
+  }
+
+  //@ts-expect-error
   return genStatus(httpCodeToText[status], {
     code,
-    message: finalMessage,
-    errors: finalErrors,
+    message: httpMessages[code],
+    errors: customMessageOrDetails,
   });
 };
