@@ -47,6 +47,7 @@ export const exception = (
   customMessageOrDetails?: string | { message: string, [key: string]: any },
 ) => {
   if (typeof customMessageOrDetails === 'string') {
+    //@ts-expect-error
     return genStatus(httpCodeToText[status], {
       code,
       message: customMessageOrDetails,
@@ -58,7 +59,7 @@ export const exception = (
     typeof customMessageOrDetails === 'object' &&
     customMessageOrDetails !== null
   const customMessageKey =
-    'message' in customMessageOrDetails &&
+    'message' in customMessageOrDetails! &&
     typeof (customMessageOrDetails as any).message === 'string'
 
   if (
