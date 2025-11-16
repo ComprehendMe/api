@@ -4,30 +4,18 @@ import { Auth, FIFTEEN_DAYS_IN_MS } from "../../config/auth";
 import { dragonfly, FIVE_MINUTES_IN_SECONDS } from "../../common/dragonfly";
 import { genSnow } from "../../common/snow";
 import { env } from "../../common/env";
-import { httpMessages } from "../../common/request/messages";
 
 type Provider = "google";
 
-type PayloadOptions = { password: string, firstName: string, lastName: string }
-
-type LoginOptions = {
+type PayloadOptions = {
   email: string;
   password: string;
-  ip: string;
-  os: string;
-  browser: string;
-}
-
-type UserPayload = {
   firstName: string;
   lastName: string;
-  email: string;
-  password: string;
 }
 
 type SignupOptions = {
-  email: string;
-  code: string;
+  token: string;
   ip: string;
   os: string;
   browser: string;
@@ -36,28 +24,22 @@ type SignupOptions = {
 export const MAX_SESSIONS_PER_USER = 5;
 
 export class SessionService {
-  public static genCode() {
-    return randomBytes(3).toString('hex').toUpperCase();
+  public static genMagicToken() {
+    return randomBytes(32).toString('hex');
   };
 
-  public static async resendCode(email: string) {
-    const REDIS_KEY = `sessions:${email}`;
-    if (await dragonfly.get<SignupOptions>(REDIS_KEY))
-      throw new Error("Code already sent. Please check your email.");
+  public static async signup({ browser, ip, os, token }: SignupOptions) {
+    const SIGNUP_DATA_KEY = `signup:${token}`;
+    const storedPayload = await dragonfly.get<PayloadOptions>(SIGNUP_DATA_KEY);
+    
+    if (!storedPayload) {
+      throw new Error("Invalid or expired magic link");
+    }
 
-    const code = this.genCode();
+    // Delete the token so it can't be used again
+    dragonfly.del(SIGNUP_DATA_KEY);
 
-    await dragonfly.setex(REDIS_KEY, FIVE_MINUTES_IN_SECONDS, code);
-  }
-
-  public static async signup({ browser, ip, os, code, email }: SignupOptions) {
-
-    const REDIS_KEY = `signup:${email}`;
-    const storedPayload = await dragonfly.get<PayloadOptions>(REDIS_KEY) as PayloadOptions;
-    const { firstName, lastName, password } = storedPayload;
-    if (!storedPayload) throw new Error("Invalid or expired code");
-
-    dragonfly.del(REDIS_KEY)
+    const { email, firstName, lastName, password } = storedPayload;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {

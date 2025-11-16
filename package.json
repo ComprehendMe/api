@@ -3,7 +3,9 @@
   "version": "1.0.50",
   "scripts": {
     "dev": "bun run --watch src/app.ts",
-    "test": "bun run src/test/index.test.ts"
+    "migrate": "drizzle-kit generate && drizzle-kit migrate",
+    "test": "bun run src/test/index.test.ts",
+    "seed": "bun run prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.925.0",

@@ -7,8 +7,9 @@ import { Auth, FIFTEEN_DAYS_IN_MS, FIFTEEN_MIN_IN_MS } from "../../config/auth";
 import { mail } from "../../common/mail";
 import { SessionModel } from "./model";
 import { ID_SCHEMA } from "../../common/snow";
-import { http } from "../../common/request/codes";
 import { isProd } from "../../entry";
+import { http, httpCodes, exception } from "../../common/request";
+import { env } from "../../common/env";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/sessions", (group) => {
@@ -22,8 +23,10 @@ export const route = (elysia: typeof app) => {
         const isPending = await dragonfly.get(PENDING_KEY);
 
         if (isPending) {
-          set.status = http.BadRequest;
-          return { message: "A confirmation code has already been sent to this email. Please check your inbox." };
+          throw exception(
+            httpCodes[http.BadRequest],
+            http.BadRequest,
+            { message: "A magic link has already been sent to this email. Please check your inbox." });
         }
 
         const hasEmailTaken = await prisma.user.findUnique({
@@ -32,45 +35,49 @@ export const route = (elysia: typeof app) => {
         });
 
         if (hasEmailTaken) {
-          set.status = http.BadRequest;
-          return { message: "Email already taken" };
+          throw exception(
+            httpCodes[http.BadRequest],
+            http.BadRequest,
+            { message: "Email already taken" });
         }
 
-        const url = new URL();
+        const token = SessionService.genMagicToken();
+        const SIGNUP_DATA_KEY = `signup:${token}`;
+        const magicLink = new URL(`/api/sessions/verify?token=${token}`, env.APP_URL);
+
         await Promise.all([
           dragonfly.setex(SIGNUP_DATA_KEY, FIVE_MINUTES_IN_SECONDS, JSON.stringify(body)),
-          dragonfly.setex(PENDING_KEY, FIVE_MINUTES_IN_SECONDS, code),
+          dragonfly.setex(PENDING_KEY, FIVE_MINUTES_IN_SECONDS, '1'),
           mail({
             to: email,
-            subject: "Welcome to Cogni AI",
-            text: `Click here to log in: <a href="${url}">Click.</a> It will expire in 5 minutes.`,
+            subject: "Welcome to Cogni AI - Verify your email",
+            text: `Click this link to complete your signup: <a href="${magicLink.href}">Verify Email</a>. This link will expire in 5 minutes.`,
           }),
         ]);
 
-        set.status = http.Created;
-        return { ok: true, message: "Confirmation code sent to your email." };
+        set.status = httpCodes[http.Created];
+        return { ok: true, message: "Magic link sent to your email." };
       },
       {
         body: SessionModel.SIGNUP_SCHEMA,
       }
     )
 
-    group.post(
-      "/signup/:code",
-      async ({ params, request, cookie, ip, set, body }) => {
+    group.get(
+      "/verify",
+      async ({ redirect, query, request, cookie, ip, set }) => {
+        const { token } = query;
+        if (!token)
+          throw exception(httpCodes[http.BadRequest], http.BadRequest, { message: "Missing token." });
+
         const { os, browser } = await Auth.verifyAgent(request.headers.get("user-agent") || "");
 
-        const { email } = body;
-        const { code } = params;
-
         const { access, refresh } = await SessionService.signup({
-          code,
-          email,
+          token,
           os,
           browser,
           ip,
         });
-
 
         cookie.refresh.set({
           value: refresh,
@@ -86,14 +93,11 @@ export const route = (elysia: typeof app) => {
           maxAge: FIFTEEN_MIN_IN_MS
         });
 
-        set.status = http.Created;
+        redirect("/");
       },
       {
-        body: t.Object({
-          email: t.String({ format: 'email' })
-        }),
-        params: t.Object({
-          code: t.String(),
+        query: t.Object({
+          token: t.String(),
         }),
       }
     )
@@ -101,32 +105,36 @@ export const route = (elysia: typeof app) => {
     group.post(
       "/login",
       async ({ body, request, cookie, ip, set }) => {
-        const { os, browser } = await Auth.verifyAgent(
-          request.headers.get("user-agent") || ""
-        );
+        try {
+          const { os, browser } = await Auth.verifyAgent(
+            request.headers.get("user-agent") || ""
+          );
 
-        const { access, refresh } = await SessionService.login({
-          ...body,
-          os,
-          browser,
-          ip,
-        });
+          const { access, refresh } = await SessionService.login({
+            ...body,
+            os,
+            browser,
+            ip,
+          });
 
-        cookie.refresh.set({
-          value: refresh,
-          httpOnly: true,
-          secure: isProd,
-          maxAge: FIFTEEN_DAYS_IN_MS
-        });
+          cookie.refresh.set({
+            value: refresh,
+            httpOnly: true,
+            secure: isProd,
+            maxAge: FIFTEEN_DAYS_IN_MS
+          });
 
-        cookie.access.set({
-          value: access,
-          httpOnly: true,
-          secure: isProd,
-          maxAge: FIFTEEN_MIN_IN_MS
-        });
+          cookie.access.set({
+            value: access,
+            httpOnly: true,
+            secure: isProd,
+            maxAge: FIFTEEN_MIN_IN_MS
+          });
 
-        set.status = http.Created;
+          set.status = httpCodes[http.Created];
+        } catch (e: any) {
+          throw exception(httpCodes[http.Unauthorized], http.Unauthorized, { message: e.message });
+        }
       },
       {
         body: SessionModel.LOGIN_SCHEMA
@@ -136,25 +144,29 @@ export const route = (elysia: typeof app) => {
     group.post(
       "/refresh",
       async ({ cookie, set }) => {
-        const { access, refresh } = await SessionService.refresh(
-          cookie.refresh.value
-        );
+        try {
+          const { access, refresh } = await SessionService.refresh(
+            cookie.refresh.value
+          );
 
-        cookie.refresh.set({
-          value: refresh,
-          httpOnly: true,
-          secure: isProd,
-          maxAge: FIFTEEN_DAYS_IN_MS
-        });
+          cookie.refresh.set({
+            value: refresh,
+            httpOnly: true,
+            secure: isProd,
+            maxAge: FIFTEEN_DAYS_IN_MS
+          });
 
-        cookie.access.set({
-          value: access,
-          httpOnly: true,
-          secure: isProd,
-          maxAge: FIFTEEN_MIN_IN_MS
-        });
+          cookie.access.set({
+            value: access,
+            httpOnly: true,
+            secure: isProd,
+            maxAge: FIFTEEN_MIN_IN_MS
+          });
 
-        set.status = http.Success;
+          set.status = httpCodes[http.Success];
+        } catch (e: any) {
+          throw exception(httpCodes[http.Unauthorized], http.Unauthorized, { message: e.message });
+        }
       },
       {
         cookie: t.Object({
@@ -178,8 +190,10 @@ export const route = (elysia: typeof app) => {
           }
         });
 
-        set.status = http.NotFound;
-        if (!me) throw new Error("Session not found");
+        if (!me) throw exception(httpCodes[http.NotFound], http.NotFound);
+
+        set.status = httpCodes[http.Success];
+        return me;
       },
       {
         params: t.Object({
@@ -192,12 +206,16 @@ export const route = (elysia: typeof app) => {
     group.delete(
       "/logout",
       async ({ cookie, set }) => {
-        await SessionService.logout(cookie.refresh.value);
+        try {
+          await SessionService.logout(cookie.refresh.value);
 
-        cookie.access.remove();
-        cookie.refresh.remove();
+          cookie.access.remove();
+          cookie.refresh.remove();
 
-        set.status = http.Success;
+          set.status = httpCodes[http.Success];
+        } catch (e: any) {
+          throw exception(httpCodes[http.Unauthorized], http.Unauthorized, { message: e.message });
+        }
       },
       {
         cookie: t.Object({
@@ -215,33 +233,37 @@ export const route = (elysia: typeof app) => {
     group.get(
       "/oauth/cb",
       async ({ query, request, cookie, ip, set }) => {
-        const { os, browser } = await Auth.verifyAgent(
-          request.headers.get("user-agent") || ""
-        );
+        try {
+          const { os, browser } = await Auth.verifyAgent(
+            request.headers.get("user-agent") || ""
+          );
 
-        const { access, refresh } = await SessionService.handleAuth0Callback({
-          code: query.code as string,
-          ip,
-          os,
-          browser,
-        });
+          const { access, refresh } = await SessionService.handleAuth0Callback({
+            code: query.code as string,
+            ip,
+            os,
+            browser,
+          });
 
-        cookie.refresh.set({
-          value: refresh,
-          httpOnly: true,
-          secure: isProd,
-          maxAge: FIFTEEN_DAYS_IN_MS
-        });
+          cookie.refresh.set({
+            value: refresh,
+            httpOnly: true,
+            secure: isProd,
+            maxAge: FIFTEEN_DAYS_IN_MS
+          });
 
-        cookie.access.set({
-          value: access,
-          httpOnly: true,
-          secure: isProd,
-          maxAge: FIFTEEN_MIN_IN_MS
-        });
+          cookie.access.set({
+            value: access,
+            httpOnly: true,
+            secure: isProd,
+            maxAge: FIFTEEN_MIN_IN_MS
+          });
 
-        set.status = http.Created;
-        set.redirect = "/"; // Redirect to home page or a success page
+          set.status = httpCodes[http.Created];
+          set.redirect = "/";
+        } catch (e: any) {
+          throw exception(httpCodes[http.InternalServerError], http.InternalServerError, { message: e.message });
+        }
       },
       {
         query: t.Object({
