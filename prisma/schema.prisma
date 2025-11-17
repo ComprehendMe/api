@@ -13,55 +13,84 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model User {
   id        BigInt    @id
-  googleId        String?    @unique
-  firstName String @map("first_name")
-  lastName String @map("last_name")
-  email String @unique
-  password String?
-  avatar String?
+  googleId  String?   @unique
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  email     String    @unique
+  password  String?
+  avatar    String?
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
   sessions Session[]
-  chats     Chat[]
+  chats    Chat[]
 
   @@map("users")
 }
 
 model Session {
-  id        BigInt    @id
-  ip String
-  os String
-  browser String?
+  id        BigInt   @id
+  ip        String
+  os        String
+  browser   String?
   userId    BigInt
-  user      User      @relation(fields: [userId], references: [id])
-  hash String
+  user      User     @relation(fields: [userId], references: [id])
+  hash      String
   expiresAt DateTime @map("expires_at")
 
   @@map("sessions")
+}
+
+model Patient {
+  id          BigInt       @id
+  name        String
+  problem     String       @db.Text
+  difficulty  Difficulty
+  chats       Chat[]
+
+  @@map("patients")
 }
 
 model Chat {
   id        BigInt    @id
   userId    BigInt
   user      User      @relation(fields: [userId], references: [id])
+  patientId BigInt
+  patient   Patient   @relation(fields: [patientId], references: [id])
   title     String
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   messages  Message[]
+  report    Report?
 
   @@map("chats")
 }
 
 model Message {
-  id        BigInt    @id
+  id        BigInt   @id
   chatId    BigInt
-  chat      Chat      @relation(fields: [chatId], references: [id])
+  chat      Chat     @relation(fields: [chatId], references: [id])
   role      String
-  content   String    @db.Text
-  createdAt DateTime  @default(now()) @map("created_at")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("messages")
+}
+
+model Report {
+  id        BigInt   @id
+  chatId    BigInt   @unique
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
 }
