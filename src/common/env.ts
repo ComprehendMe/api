@@ -25,4 +25,7 @@ export const env = e.cleanEnv(process.env, {
   BUCKET_ENDPOINT: e.str(),
   BUCKET_NAME: e.str(),
   BUCKET_PUBLIC_URL: e.str(),
+
+  STRIPE_SECRET_KEY: e.str(),
+  STRIPE_WEBHOOK_SECRET: e.str()
 })

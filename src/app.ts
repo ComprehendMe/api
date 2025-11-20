@@ -4,6 +4,7 @@ import { routify } from "./common/routify";
 import chalk from "chalk";
 import { prisma } from "./common/prisma";
 
+const salve = 'salve';
 export const app = await createApp();
 
 await routify(app);

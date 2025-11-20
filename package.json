@@ -20,6 +20,7 @@
     "ioredis": "^5.8.1",
     "prisma": "^6.17.1",
     "resend": "^6.4.2",
+    "stripe": "^20.0.0",
     "typebox": "^1.0.51",
     "useragent": "^2.3.0"
   },
