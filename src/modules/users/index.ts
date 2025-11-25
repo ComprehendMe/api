@@ -3,6 +3,9 @@ import { Bucket } from "../../common/bucket";
 import { prisma } from "../../common/prisma";
 import { http, httpCodes, exception } from "../../common/request";
 import { env } from "../../common/env";
+import { t } from "elysia";
+import { SessionMode } from "@aws-sdk/client-s3";
+import { SessionModel } from "../sessions/model";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/users", (gp) => {
@@ -123,7 +126,9 @@ export const route = (elysia: typeof app) => {
     );
     gp.put(
       "/@me",
-      async ({ user: { id: userId }, set }) => {
+      async ({ body, user: { id: userId }, set }) => {
+        const { email } = body;
+
         const emailExists = await prisma.user.findFirst({
           where: {
             email,
@@ -135,14 +140,22 @@ export const route = (elysia: typeof app) => {
           where: {
             id: userId,
           },
-          data: {},
+          data: {
+            ...body
+          }
         });
-        const { email, firstName, lastName } = updateUser;
 
         set.status = httpCodes[http.Success];
         return { updateUser };
       },
       {
+        //NOTE: dps é importante colocar alguma validação nos nomes
+        body: t.Object({
+          email: t.Optional(t.String({ format: 'email' })),
+          firstName: t.Optional(t.String()),
+          lastName: t.Optional(t.String()),
+          password: t.Optional(SessionModel.PASSWORD_SCHEMA),
+        }),
         detail: {
           summary: "Update Current User",
           description:
