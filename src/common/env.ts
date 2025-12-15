@@ -27,5 +27,6 @@ export const env = e.cleanEnv(process.env, {
   BUCKET_PUBLIC_URL: e.str(),
 
   STRIPE_SECRET_KEY: e.str(),
-  STRIPE_WEBHOOK_SECRET: e.str()
+  STRIPE_WEBHOOK_SECRET: e.str(),
+  GEMINI_API_KEY: e.str()
 })
