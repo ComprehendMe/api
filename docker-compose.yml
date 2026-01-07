@@ -1,4 +1,4 @@
-name: cogniAI
+name: comprehendme
 
 services:
   pg:
@@ -8,7 +8,7 @@ services:
     environment:
         POSTGRES_USER: docker
         POSTGRES_PASSWORD: docker
-        POSTGRES_DB: cogniAI
+        POSTGRES_DB: comprehendme
     volumes:
       - pg-data:/var/lib/postgresql/pg-data
 

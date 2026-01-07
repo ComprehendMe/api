@@ -22,17 +22,26 @@ enum Difficulty {
 model User {
   id        BigInt    @id
   googleId  String?   @unique
-  name String
+  name      String?
   email     String    @unique
-  password  String?
   avatar    String?
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
   sessions Session[]
   chats    Chat[]
+  friends  Friend[]
 
   @@map("users")
+}
+
+model Friend {
+  id     BigInt @id
+  userId BigInt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("friends")
 }
 
 model Session {
@@ -49,11 +58,11 @@ model Session {
 }
 
 model Patient {
-  id          BigInt       @id
-  name        String
-  problem     String       @db.Text
-  difficulty  Difficulty
-  chats       Chat[]
+  id         BigInt     @id
+  name       String
+  problem    String     @db.Text
+  difficulty Difficulty
+  chats      Chat[]
 
   @@map("patients")
 }
@@ -65,31 +74,29 @@ model Chat {
   patientId BigInt
   patient   Patient   @relation(fields: [patientId], references: [id])
   title     String
-  createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   messages  Message[]
+  endedAt   DateTime? @map("ended_at")
   report    Report?
 
   @@map("chats")
 }
 
 model Message {
-  id        BigInt   @id
-  chatId    BigInt
-  chat      Chat     @relation(fields: [chatId], references: [id])
-  role      String
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
+  id      BigInt @id
+  chatId  BigInt
+  chat    Chat   @relation(fields: [chatId], references: [id])
+  role    String
+  content String @db.Text
 
   @@map("messages")
 }
 
 model Report {
-  id        BigInt   @id
-  chatId    BigInt   @unique
-  chat      Chat     @relation(fields: [chatId], references: [id])
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
+  id      BigInt @id
+  chatId  BigInt @unique
+  chat    Chat   @relation(fields: [chatId], references: [id])
+  content String @db.Text
 
   @@map("reports")
 }
