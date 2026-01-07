@@ -37,7 +37,7 @@ ${problemList}
 Lembre-se, ${botInfo.name}, o objetivo é simular uma sessão de terapia real, permitindo que o profissional pratique e aprimore suas habilidades.`;
 }
 
-async function askGemini(patientInfo: PatientInfo, userPrompt: string) {
+export async function askGemini(patientInfo: PatientInfo, userPrompt: string) {
 	const systemPrompt = createSystemPrompt(patientInfo);
 
 	const contents = [

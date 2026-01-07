@@ -30,18 +30,32 @@ model User {
 
   sessions Session[]
   chats    Chat[]
-  friends  Friend[]
+  sentFriendRequests     Friendship[] @relation("sentFriendRequests")
+  receivedFriendRequests Friendship[] @relation("receivedFriendRequests")
 
   @@map("users")
 }
 
-model Friend {
-  id     BigInt @id
-  userId BigInt
+model Friendship {
+  id          BigInt   @id
+  requesterId BigInt
+  requester   User     @relation("sentFriendRequests", fields: [requesterId], references: [id])
+  addresseeId BigInt
+  addressee   User     @relation("receivedFriendRequests", fields: [addresseeId], references: [id])
+  
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  @@unique([requesterId, addresseeId])
+  @@map("friendships")
+}
 
-  @@map("friends")
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
 }
 
 model Session {
