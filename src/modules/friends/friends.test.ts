@@ -2,6 +2,17 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { prisma } from 'src/common/prisma';
 import { FriendService } from './service';
 
+type User = { email: string; name: string };
+
+const createUser = async ({ email, name }: User) => {
+	await prisma.user.create({
+		data: {
+			email,
+			name,
+		},
+	});
+};
+
 describe('FriendService', () => {
 	let userA: any;
 	let userB: any;

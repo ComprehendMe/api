@@ -1,25 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { FriendService } from '../modules/friends/service';
-import { prisma } from '../common/prisma';
-import { genSnow } from '../common/snow';
-import { FriendshipStatus } from '@prisma/client';
-
-const createUser = async (name: string, email: string) => {
-	return prisma.user.create({
-		data: {
-			id: genSnow(),
-			name,
-			email,
-		},
-	});
-};
-
-import { MeService } from '../modules/@me/service';
-import { Bucket } from '../common/bucket';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { prisma } from 'src/common/prisma';
+import { genSnow } from 'src/common/snow';
+import { MeService } from './service';
+import { Bucket } from 'src/common/bucket';
 
 describe('MeService', () => {
 	let user: any;
-
 	let otherUser: any;
 
 	beforeAll(async () => {
@@ -28,9 +14,7 @@ describe('MeService', () => {
 		user = await prisma.user.create({
 			data: {
 				id: genSnow(),
-
 				name: `Me User ${timestamp}`,
-
 				email: `me${timestamp}@test.com`,
 			},
 		});
@@ -38,9 +22,7 @@ describe('MeService', () => {
 		otherUser = await prisma.user.create({
 			data: {
 				id: genSnow(),
-
 				name: `Other User ${timestamp}`,
-
 				email: `other${timestamp}@test.com`,
 			},
 		});
@@ -58,7 +40,6 @@ describe('MeService', () => {
 		const profile = await MeService.getById(user.id);
 
 		expect(profile).toBeDefined();
-
 		expect(profile.email).toBe(user.email);
 	});
 
@@ -69,16 +50,13 @@ describe('MeService', () => {
 
 		await MeService.update({
 			id: user.id,
-
 			name: newName,
-
 			email: newEmail,
 		});
 
 		const updated = await prisma.user.findUnique({ where: { id: user.id } });
 
 		expect(updated?.name).toBe(newName);
-
 		expect(updated?.email).toBe(newEmail);
 
 		user.email = newEmail;
@@ -99,8 +77,6 @@ describe('MeService', () => {
 	it('should generate avatar upload url', async () => {
 		const originalGen = Bucket.genPresignedUrl;
 
-		// @ts-ignore
-
 		Bucket.genPresignedUrl = async () => ({
 			hash: 'mock_hash',
 
@@ -109,7 +85,6 @@ describe('MeService', () => {
 
 		try {
 			const result = await MeService.getAvatar(user.id);
-
 			expect(result.route).toBe('http://mock.url');
 
 			const updated = await prisma.user.findUnique({ where: { id: user.id } });
@@ -123,13 +98,9 @@ describe('MeService', () => {
 	it('should remove avatar', async () => {
 		const originalRemove = Bucket.remove;
 
-		// @ts-ignore
-
 		Bucket.remove = async () => ({ ok: true });
-
 		try {
 			const result = await MeService.removeAvatar(user.id);
-
 			expect(result.ok).toBe(true);
 		} finally {
 			Bucket.remove = originalRemove;

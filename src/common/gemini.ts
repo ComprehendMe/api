@@ -1,11 +1,11 @@
-import { GoogleGenAI } from '@google/genai';
+import { type Content, GoogleGenAI } from '@google/genai';
 import { env } from './env';
 
 const ai = new GoogleGenAI({
 	apiKey: env.GEMINI_API_KEY,
 });
 
-interface PatientInfo {
+export interface PatientInfo {
 	name: string;
 	age: number;
 	nacionality: string;
@@ -16,7 +16,7 @@ interface PatientInfo {
 	}[];
 }
 
-function createSystemPrompt(botInfo: PatientInfo): string {
+export function createSystemPrompt(botInfo: PatientInfo): string {
 	const problemList = botInfo.problems
 		.map((p) => `- ${p.name} (de ${p.startDate} a ${p.endDate})`)
 		.join('\n');
@@ -37,22 +37,27 @@ ${problemList}
 Lembre-se, ${botInfo.name}, o objetivo é simular uma sessão de terapia real, permitindo que o profissional pratique e aprimore suas habilidades.`;
 }
 
-export async function askGemini(patientInfo: PatientInfo, userPrompt: string) {
-	const systemPrompt = createSystemPrompt(patientInfo);
-
+export async function askGemini(
+	systemInstruction: string,
+	history: Content[],
+	newMessage: string,
+) {
 	const contents = [
-		{ role: 'user', parts: [{ text: systemPrompt }] },
-		{ role: 'model', parts: [{ text: 'Ok, entendi. Pode começar.' }] },
-		{ role: 'user', parts: [{ text: userPrompt }] },
+		...history,
+		{ role: 'user', parts: [{ text: newMessage }] },
 	];
 
 	const result = await ai.models.generateContent({
 		model: 'gemini-1.5-flash',
-		contents,
+		config: {
+			systemInstruction: {
+				parts: [{ text: systemInstruction }],
+			},
+		},
+		//@ts-expect-error
+		content: contents,
 	});
 
 	const txt = result.text;
-	if (!result || !txt) return;
-
-	return txt;
+	return txt || '';
 }

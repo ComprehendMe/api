@@ -19,6 +19,13 @@ enum Difficulty {
   HARD
 }
 
+enum MessageStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+}
+
 model User {
   id        BigInt    @id
   googleId  String?   @unique
@@ -28,8 +35,8 @@ model User {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  sessions Session[]
-  chats    Chat[]
+  sessions               Session[]
+  chats                  Chat[]
   sentFriendRequests     Friendship[] @relation("sentFriendRequests")
   receivedFriendRequests Friendship[] @relation("receivedFriendRequests")
 
@@ -37,15 +44,15 @@ model User {
 }
 
 model Friendship {
-  id          BigInt   @id
+  id          BigInt @id
   requesterId BigInt
-  requester   User     @relation("sentFriendRequests", fields: [requesterId], references: [id])
+  requester   User   @relation("sentFriendRequests", fields: [requesterId], references: [id])
   addresseeId BigInt
-  addressee   User     @relation("receivedFriendRequests", fields: [addresseeId], references: [id])
-  
-  status      FriendshipStatus @default(PENDING)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  addressee   User   @relation("receivedFriendRequests", fields: [addresseeId], references: [id])
+
+  status    FriendshipStatus @default(PENDING)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
 
   @@unique([requesterId, addresseeId])
   @@map("friendships")
@@ -97,11 +104,13 @@ model Chat {
 }
 
 model Message {
-  id      BigInt @id
-  chatId  BigInt
-  chat    Chat   @relation(fields: [chatId], references: [id])
-  role    String
-  content String @db.Text
+  id     BigInt @id
+  chatId BigInt
+  chat   Chat   @relation(fields: [chatId], references: [id])
+  role   String //"user" || "model"
+
+  content String        @db.Text
+  status  MessageStatus @default(DELIVERED)
 
   @@map("messages")
 }
