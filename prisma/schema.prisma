@@ -6,11 +6,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  url      = env("DATABASE_URL")
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Difficulty {
@@ -79,11 +79,13 @@ model Session {
 }
 
 model Patient {
-  id         BigInt     @id
-  name       String
-  problem    String     @db.Text
-  difficulty Difficulty
-  chats      Chat[]
+  id          BigInt     @id
+  name        String
+  problem     String     @db.Text
+  age         Int
+  nationality String
+  difficulty  Difficulty
+  chats       Chat[]
 
   @@map("patients")
 }

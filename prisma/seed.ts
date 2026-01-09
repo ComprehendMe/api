@@ -48,6 +48,8 @@ async function main() {
 				id: genSnow(),
 				name: faker.person.fullName(),
 				problem: problems[i] || faker.lorem.sentence(),
+				age: faker.number.int({ min: 18, max: 70 }),
+				nationality: faker.location.country(),
 				difficulty: faker.helpers.arrayElement(Object.values(Difficulty)),
 			},
 		});
@@ -101,7 +103,7 @@ async function main() {
 				data: {
 					id: genSnow(),
 					chatId: chat.id,
-					role: m % 2 === 0 ? 'user' : 'assistant',
+					role: m % 2 === 0 ? 'user' : 'model',
 					content:
 						m % 2 === 0 ? faker.lorem.sentence() : faker.lorem.paragraph(),
 				},

@@ -22,34 +22,38 @@ export const aiQueue = new Queue(AI_QUEUE_NAME, {
 	},
 });
 
-const worker = new Worker(AI_QUEUE_NAME, async (job) => {
-	try {
-		const { chatId, lastUserMessage, systemInstruction, history } = job.data;
+export const worker = new Worker(
+	AI_QUEUE_NAME,
+	async (job) => {
+		try {
+			const { chatId, lastUserMessage, systemInstruction, history } = job.data;
 
-		const response = await askGemini(
-			systemInstruction,
-			history,
-			lastUserMessage,
-		);
+			const response = await askGemini(
+				systemInstruction,
+				history,
+				lastUserMessage,
+			);
 
-		if (!response) throw new Error('Empty response for AI');
-		const messageId = genSnow();
+			if (!response) throw new Error('Empty response for AI');
+			const messageId = genSnow();
 
-		await prisma.message.create({
-			data: {
-				id: messageId,
-				chatId,
-				role: 'model',
-				content: response,
-			},
-		});
+			await prisma.message.create({
+				data: {
+					id: messageId,
+					chatId: BigInt(chatId),
+					role: 'model',
+					content: response,
+				},
+			});
 
-		if (env.NODE_ENV === 'development')
-			console.log(`[WORKER] message ${messageId} saved!!`);
+			if (env.NODE_ENV === 'development')
+				console.log(`[WORKER] message ${messageId} saved!!`);
 
-		return { ok: true };
-	} catch (error) {
-		console.log(error);
-		throw error;
-	}
-});
+			return { ok: true };
+		} catch (error) {
+			console.log(error);
+			throw error;
+		}
+	},
+	{ connection },
+);

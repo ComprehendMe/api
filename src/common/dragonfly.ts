@@ -1,14 +1,15 @@
 import Redis, { type Redis as RedisClient } from 'ioredis';
 import { env } from './env';
-import { da } from '@faker-js/faker';
 
 export const FIVE_MINUTES_IN_SECONDS = 5 * 60;
 export const ONE_MINUTE_IN_SECONDS = 60;
 
+export type DragonflyCallback = (data: any) => void;
+
 export class Dragonfly {
 	private pub: RedisClient;
 	private sub: RedisClient;
-	private subscribers = new Map<string, Set<Function>>();
+	private subscribers = new Map<string, Set<DragonflyCallback>>();
 	private isClosing = false;
 
 	constructor() {
@@ -54,7 +55,9 @@ export class Dragonfly {
 	}
 
 	public async unsubscribe(topic: string) {
-		return this.sub.unsubscribe(topic);
+		void this.sub.unsubscribe(topic).catch((err) => {
+			console.error(`[Dragonfly] Erro ao desinscrever de ${topic}:`, err);
+		});
 	}
 
 	public async subscribe(topic: string) {
@@ -62,12 +65,6 @@ export class Dragonfly {
 	}
 
 	public on(channel: string, cb: (...args: any[]) => void) {
-		if (!this.subscribers.has(channel)) {
-			this.subscribers.set(channel, new Set());
-
-			this.sub.subscribe(channel);
-		}
-
 		this.subscribers.get(channel)?.add(cb);
 
 		return () => {
@@ -76,6 +73,7 @@ export class Dragonfly {
 
 			if (set?.size === 0) {
 				this.subscribers.delete(channel);
+				this.sub.unsubscribe(channel);
 			}
 		};
 	}
