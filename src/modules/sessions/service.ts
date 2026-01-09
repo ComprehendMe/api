@@ -25,7 +25,6 @@ export class SessionService {
 		const email = await dragonfly.get<string>(REDIS_KEY);
 
 		if (!email) {
-			return email;
 			throw exception(
 				httpCodes[http.BadRequest],
 				http.BadRequest,
@@ -33,7 +32,7 @@ export class SessionService {
 			);
 		}
 
-		dragonfly.del(REDIS_KEY);
+		await dragonfly.del(REDIS_KEY);
 
 		const existingUser = await prisma.user.findUnique({ where: { email } });
 
@@ -188,6 +187,7 @@ export class SessionService {
 			);
 		}
 
+		//@ts-expect-error
 		const { access_token } = await tokenResponse.json();
 
 		const userinfoResponse = await fetch(`https://${AUTH0_DOMAIN}/userinfo`, {
@@ -203,18 +203,19 @@ export class SessionService {
 		}
 
 		const userinfo = await userinfoResponse.json();
-		const {
-			email,
-			sub: googleId,
-			given_name: firstName,
-			family_name: lastName,
-			avatar,
-		} = userinfo;
+		//@ts-expect-error
+		const { email, sub: googleId, given_name, family_name, avatar } = userinfo;
 
 		const user = await prisma.user.upsert({
 			where: { email },
-			create: { id: genSnow(), email, firstName, lastName, avatar, googleId },
-			update: { googleId, firstName, lastName, avatar },
+			create: {
+				id: genSnow(),
+				email,
+				name: `${given_name} ${family_name}`,
+				avatar,
+				googleId,
+			},
+			update: { googleId, avatar },
 			select: { id: true, email: true },
 		});
 

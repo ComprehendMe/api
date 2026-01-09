@@ -1,15 +1,16 @@
 import { t } from 'elysia';
-import { app } from '../../app';
-import { SessionService } from './service';
-import { prisma } from '../../common/prisma';
+import type { app } from '../../app';
 import { dragonfly, FIVE_MINUTES_IN_SECONDS } from '../../common/dragonfly';
-import { Auth, FIFTEEN_DAYS_IN_MS, FIFTEEN_MIN_IN_MS } from '../../config/auth';
-import { mail } from '../../common/mail';
-import { SessionModel } from './model';
-import { ID_SCHEMA } from '../../common/snow';
-import { isProd } from '../../entry';
-import { http, httpCodes, exception } from '../../common/request';
 import { env } from '../../common/env';
+import { mail } from '../../common/mail';
+import { prisma } from '../../common/prisma';
+import { exception, http, httpCodes } from '../../common/request';
+import { ID_SCHEMA } from '../../common/snow';
+import { signupTemplate } from '../../common/templates/mail';
+import { Auth, FIFTEEN_DAYS_IN_MS, FIFTEEN_MIN_IN_MS } from '../../config/auth';
+import { isProd } from '../../entry';
+import { SessionModel } from './model';
+import { SessionService } from './service';
 
 export const route = (elysia: typeof app) => {
 	elysia.group('/sessions', (group) => {
@@ -54,7 +55,8 @@ export const route = (elysia: typeof app) => {
 					mail({
 						to: email,
 						subject: 'Welcome to Comprehend Me - Verify your email',
-						text: `Click this link to complete your signup: <a href="${magicLink.href}">Verify Email</a>. This link will expire in 5 minutes.`,
+						html: signupTemplate(magicLink.href),
+						text: `Verify your email by clicking here: ${magicLink.href}`,
 					}),
 				]);
 
@@ -74,7 +76,7 @@ export const route = (elysia: typeof app) => {
 
 		group.get(
 			'/verify',
-			async ({ redirect, query, request, cookie, ip, set }) => {
+			async ({ query, request, cookie, ip, set }) => {
 				const { token } = query;
 				if (!token)
 					throw exception(httpCodes[http.BadRequest], http.BadRequest, {
@@ -94,14 +96,14 @@ export const route = (elysia: typeof app) => {
 
 				cookie.refresh.set({
 					value: refresh,
-					httpOnly: true,
+					httpOnly: isProd,
 					secure: isProd,
 					maxAge: FIFTEEN_DAYS_IN_MS,
 				});
 
 				cookie.access.set({
 					value: access,
-					httpOnly: true,
+					httpOnly: isProd,
 					secure: isProd,
 					maxAge: FIFTEEN_MIN_IN_MS,
 				});
@@ -141,6 +143,8 @@ export const route = (elysia: typeof app) => {
 						value: refresh,
 						httpOnly: true,
 						secure: isProd,
+						path: '/',
+						sameSite: 'lax',
 						maxAge: FIFTEEN_DAYS_IN_MS,
 					});
 
@@ -148,6 +152,8 @@ export const route = (elysia: typeof app) => {
 						value: access,
 						httpOnly: true,
 						secure: isProd,
+						path: '/',
+						sameSite: 'lax',
 						maxAge: FIFTEEN_MIN_IN_MS,
 					});
 
@@ -159,6 +165,10 @@ export const route = (elysia: typeof app) => {
 				}
 			},
 			{
+				cookie: t.Object({
+					access: t.String(),
+					refresh: t.String(),
+				}),
 				body: t.Object({ email: t.String({ format: 'email' }) }),
 				detail: {
 					summary: 'User Login',

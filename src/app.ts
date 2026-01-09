@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { env } from './common/env';
 import { prisma } from './common/prisma';
 import { routify } from './common/routify';
+import './common/queue';
 import { createApp } from './entry';
 
 export const app = await createApp();

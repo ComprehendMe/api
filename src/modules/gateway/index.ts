@@ -35,18 +35,13 @@ export const route = (elysia: typeof app) => {
 			ws.data.user = user;
 
 			console.log(`WS: User ${userId} connected`);
-
 			const topic = `user:${userId}`;
 
-      // Inscreve o usuário no seu canal privado para receber notificações/mensagens
-      const topic = `user:${userId}`;
-      
-      // Armazena a função de unsubscribe no ws.data para cleanup
-      // @ts-ignore
-      ws.data.unsubscribe = await wsManager.subscribe(topic, (msg) => {
-        ws.send(msg);
-      });
-    },
+			//@ts-expect-error
+			ws.data.unsubscribe = await wsManager.subscribe(topic, (msg) => {
+				ws.send(msg);
+			});
+		},
 
 		message(ws, message) {
 			console.log('WS Message received:', message);

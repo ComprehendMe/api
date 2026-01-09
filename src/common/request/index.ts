@@ -44,8 +44,11 @@ export const httpMessages: Record<http, string> = {
 export const exception = (
   status: number,
   code: http,
-  customMessageOrDetails?: string | { message: string, [key: string]: any },
+  customMessageOrDetails?: string | { message: string; [key: string]: any },
 ) => {
+  let message = httpMessages[code];
+  let errors: any = undefined;
+
   if (typeof customMessageOrDetails === 'string') {
     //@ts-expect-error
     return genStatus(httpCodeToText[status], {
@@ -55,30 +58,24 @@ export const exception = (
     });
   }
 
-  const customMessageType =
-    typeof customMessageOrDetails === 'object' &&
-    customMessageOrDetails !== null
-  const customMessageKey =
-    'message' in customMessageOrDetails! &&
-    typeof (customMessageOrDetails as any).message === 'string'
+  if (customMessageOrDetails && typeof customMessageOrDetails === 'object') {
+    message = customMessageOrDetails.message || message;
 
-  if (
-    customMessageType &&
-    customMessageKey &&
-    typeof (customMessageOrDetails as any).message === 'string'
-  ) {
+    const { message: _, ...rest } = customMessageOrDetails;
+    errors = Object.keys(rest).length > 0 ? rest : undefined;
+
     //@ts-expect-error
     return genStatus(httpCodeToText[status], {
       code,
-      message: (customMessageOrDetails as any).message,
-      errors: customMessageOrDetails,
+      message,
+      errors,
     });
   }
 
   //@ts-expect-error
   return genStatus(httpCodeToText[status], {
     code,
-    message: httpMessages[code],
-    errors: customMessageOrDetails,
+    message,
+    errors,
   });
 };

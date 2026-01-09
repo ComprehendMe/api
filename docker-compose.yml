@@ -20,7 +20,7 @@ services:
       memlock: -1
     volumes:
       - dragonflydata:/data
-    command: ["--proactor_threads=4", "--maxmemory=1gb"]
+    command: ["--proactor_threads=4", "--maxmemory=1gb", "--default_lua_flags=allow-undeclared-keys"]
 
 volumes:
    pg-data:

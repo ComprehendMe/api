@@ -5,7 +5,7 @@ import { env } from '../common/env';
 import { Auth } from '../config/auth';
 import '../common/queue.ts';
 
-export const isProd = env.NODE_ENV === 'prod';
+export const isProd = env.NODE_ENV === 'production';
 export const createApp = async () => {
 	const app = new Elysia({ name: 'cogniAI' })
 		.use(ip())
@@ -53,12 +53,18 @@ export const createApp = async () => {
 		.derive(({ request, cookie: { access }, set }) => {
 			const path = new URL(request.url).pathname;
 
+			// Debug: Ver se o cookie está chegando
+			if (env.NODE_ENV !== 'production') {
+				console.log(`[Auth Debug] Path: ${path}, Access Cookie: ${access?.value ? 'Present' : 'Missing'}`);
+			}
+
 			const NON_AUTH_ROUTES = [
 				'/health',
 				'/sessions/signup',
 				'/sessions/login',
 				'/sessions/oauth/google',
 				'/sessions/verify',
+				'/sessions/refresh',
 			];
 
 			if (path.startsWith('/docs') || NON_AUTH_ROUTES.includes(path)) return {};
