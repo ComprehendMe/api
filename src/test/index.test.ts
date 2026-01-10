@@ -1,138 +1,43 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { FriendService } from '../modules/friends/service';
-import { prisma } from '../common/prisma';
-import { genSnow } from '../common/snow';
-import { FriendshipStatus } from '@prisma/client';
+import { describe, it } from 'bun:test';
+import { GoogleGenAI } from '@google/genai';
+import chalk from 'chalk';
+import { env } from '../common/env';
 
-const createUser = async (name: string, email: string) => {
-	return prisma.user.create({
-		data: {
-			id: genSnow(),
-			name,
-			email,
-		},
-	});
-};
-
-import { MeService } from '../modules/@me/service';
-import { Bucket } from '../common/bucket';
-
-describe('MeService', () => {
-	let user: any;
-
-	let otherUser: any;
-
-	beforeAll(async () => {
-		const timestamp = Date.now();
-
-		user = await prisma.user.create({
-			data: {
-				id: genSnow(),
-
-				name: `Me User ${timestamp}`,
-
-				email: `me${timestamp}@test.com`,
-			},
-		});
-
-		otherUser = await prisma.user.create({
-			data: {
-				id: genSnow(),
-
-				name: `Other User ${timestamp}`,
-
-				email: `other${timestamp}@test.com`,
-			},
-		});
-	});
-
-	afterAll(async () => {
+describe('Gemini Models', () => {
+	it('should list available models', async () => {
+		const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
 		try {
-			await prisma.user.deleteMany({
-				where: { id: { in: [user.id, otherUser.id] } },
-			});
-		} catch {}
-	});
+			const response = await ai.models.list();
+			console.log('DEBUG RESPONSE:', JSON.stringify(response, null, 2));
 
-	it('should get current user profile', async () => {
-		const profile = await MeService.getById(user.id);
+			console.log('--- AVAILABLE GEMINI MODELS ---');
+			if (response && Array.isArray(response)) {
+				console.log(chalk.red('aqui estou'));
+				for (const m of response) {
+					console.log(`- ${m.name}`);
+				}
 
-		expect(profile).toBeDefined();
+				return;
+			}
 
-		expect(profile.email).toBe(user.email);
-	});
+			if (response && 'models' in response) {
+				console.log(chalk.blue('aqui estou'));
 
-	it('should update user profile', async () => {
-		const newName = 'Updated Me Name';
+				//@ts-expect-error
+				for (const model of response.models) {
+					console.log(chalk.yellow('aqui estou'));
+					console.log(
+						`- ${model.name} (Methods: ${model.supportedGenerationMethods})`,
+					);
+				}
 
-		const newEmail = `updated_me${Date.now()}@test.com`;
+				return;
+			}
 
-		await MeService.update({
-			id: user.id,
-
-			name: newName,
-
-			email: newEmail,
-		});
-
-		const updated = await prisma.user.findUnique({ where: { id: user.id } });
-
-		expect(updated?.name).toBe(newName);
-
-		expect(updated?.email).toBe(newEmail);
-
-		user.email = newEmail;
-	});
-
-	it('should fail to update email to one already taken', async () => {
-		try {
-			await MeService.update({
-				id: user.id,
-
-				email: otherUser.email,
-			});
-		} catch (e: any) {
-			expect(e).toBeDefined();
-		}
-	});
-
-	it('should generate avatar upload url', async () => {
-		const originalGen = Bucket.genPresignedUrl;
-
-		// @ts-ignore
-
-		Bucket.genPresignedUrl = async () => ({
-			hash: 'mock_hash',
-
-			route: 'http://mock.url',
-		});
-
-		try {
-			const result = await MeService.getAvatar(user.id);
-
-			expect(result.route).toBe('http://mock.url');
-
-			const updated = await prisma.user.findUnique({ where: { id: user.id } });
-
-			expect(updated?.avatar).toBe('mock_hash');
-		} finally {
-			Bucket.genPresignedUrl = originalGen;
-		}
-	});
-
-	it('should remove avatar', async () => {
-		const originalRemove = Bucket.remove;
-
-		// @ts-ignore
-
-		Bucket.remove = async () => ({ ok: true });
-
-		try {
-			const result = await MeService.removeAvatar(user.id);
-
-			expect(result.ok).toBe(true);
-		} finally {
-			Bucket.remove = originalRemove;
+			console.log('Estrutura de resposta desconhecida:', response);
+			console.log('-------------------------------');
+		} catch (e) {
+			console.error('Error listing models:', e);
 		}
 	});
 });

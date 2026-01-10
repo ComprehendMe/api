@@ -42,20 +42,22 @@ export async function askGemini(
 	history: Content[],
 	newMessage: string,
 ) {
-	const contents = [
-		...history,
-		{ role: 'user', parts: [{ text: newMessage }] },
-	];
+	let contents = [...history];
+	const lastMsg = contents[contents.length - 1];
+	const lastText = lastMsg?.parts?.[0]?.text;
+
+	if (!lastMsg || (lastMsg.role === 'user' && lastText !== newMessage)) {
+		contents.push({ role: 'user', parts: [{ text: newMessage }] });
+	}
 
 	const result = await ai.models.generateContent({
-		model: 'gemini-1.5-flash',
+		model: 'gemini-flash-latest',
 		config: {
 			systemInstruction: {
 				parts: [{ text: systemInstruction }],
 			},
 		},
-		//@ts-expect-error
-		content: contents,
+		contents,
 	});
 
 	const txt = result.text;
