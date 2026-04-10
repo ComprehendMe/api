@@ -7,6 +7,8 @@ type CreatePatient = {
 	name: string;
 	problem: string;
 	difficulty: Difficulty;
+	age?: number;
+	nationality?: string;
 };
 
 type UpdatePatient = {
@@ -14,6 +16,8 @@ type UpdatePatient = {
 	name?: string;
 	problem?: string;
 	difficulty?: Difficulty;
+	age?: number;
+	nationality?: string;
 };
 
 export class PatientService {
@@ -25,7 +29,11 @@ export class PatientService {
 		return await prisma.patient.create({
 			data: {
 				id: genSnow(),
-				...data,
+				age: data.age ?? 18,
+				nationality: data.nationality ?? 'Unknown',
+				difficulty: data.difficulty,
+				name: data.name,
+				problem: data.problem,
 			},
 		});
 	}

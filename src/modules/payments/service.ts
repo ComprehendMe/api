@@ -1,7 +1,7 @@
 
 import { stripe } from '../../config/payments';
 import Stripe from 'stripe';
-import { PaymentModel } from './model';
+import type { PaymentModel } from './model';
 
 
 export class PaymentService {

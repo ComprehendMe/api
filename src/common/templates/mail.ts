@@ -1,4 +1,14 @@
-export const signupTemplate = (magicLink: string) => `
+type MagicLinkTemplateOptions = {
+	actionLabel: string;
+	intro: string;
+	magicLink: string;
+};
+
+export const magicLinkTemplate = ({
+	actionLabel,
+	intro,
+	magicLink,
+}: MagicLinkTemplateOptions) => `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -20,10 +30,10 @@ export const signupTemplate = (magicLink: string) => `
     <div class="wrapper">
         <div class="container">
             <h2>Comprehend Me</h2>
-            <p>Olá! Para concluir sua conta, clique no botão abaixo para verificar seu endereço de e-mail.</p>
+            <p>${intro}</p>
             
             <div class="button-container">
-                <a href="${magicLink}" class="button">Verificar E-mail</a>
+                <a href="${magicLink}" class="button">${actionLabel}</a>
             </div>
             
             <p>Este link expirará em <strong>5 minutos</strong>. Se você não solicitou este acesso, ignore este e-mail.</p>
@@ -39,3 +49,19 @@ export const signupTemplate = (magicLink: string) => `
 </body>
 </html>
 `;
+
+export const signupTemplate = (magicLink: string) =>
+	magicLinkTemplate({
+		actionLabel: 'Verificar E-mail',
+		intro:
+			'Olá! Para concluir sua conta, clique no botão abaixo para verificar seu endereço de e-mail.',
+		magicLink,
+	});
+
+export const loginTemplate = (magicLink: string) =>
+	magicLinkTemplate({
+		actionLabel: 'Entrar na conta',
+		intro:
+			'Recebemos um pedido para entrar na sua conta. Use o botão abaixo para concluir o login com magic link.',
+		magicLink,
+	});

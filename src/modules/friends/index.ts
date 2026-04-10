@@ -6,18 +6,27 @@ import { FriendshipStatus } from "@prisma/client";
 
 export const route = (elysia: typeof app) => {
   elysia.group("/friends", (gp) => {
-    gp.get("/", ({ user }) => {
+    gp.get("/", (context) => {
+      const user = (context as typeof context & { user?: { id: bigint } }).user;
+      if (!user) throw new Error('Unauthorized');
+
       return FriendService.listFriends(BigInt(user.id));
     });
 
-    gp.get("/requests", ({ user }) => {
+    gp.get("/requests", (context) => {
+      const user = (context as typeof context & { user?: { id: bigint } }).user;
+      if (!user) throw new Error('Unauthorized');
+
       return FriendService.listFriendRequests(BigInt(user.id));
     });
 
     gp.post(
       "/requests",
-      ({ user, body }) => {
-        return FriendService.requestFriend(BigInt(user.id), body.userId);
+      (context) => {
+        const user = (context as typeof context & { user?: { id: bigint } }).user;
+        if (!user) throw new Error('Unauthorized');
+
+        return FriendService.requestFriend(BigInt(user.id), context.body.userId);
       },
       {
         body: t.Object({
@@ -28,11 +37,14 @@ export const route = (elysia: typeof app) => {
 
     gp.put(
       "/requests/:requestId",
-      ({ user, params, body }) => {
+      (context) => {
+        const user = (context as typeof context & { user?: { id: bigint } }).user;
+        if (!user) throw new Error('Unauthorized');
+
         return FriendService.acceptFriendRequest(
-          params.requestId,
+          context.params.requestId,
           BigInt(user.id),
-          body.status,
+          context.body.status,
         );
       },
       {

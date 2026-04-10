@@ -16,13 +16,11 @@ export namespace SessionModel {
 
 	export const LOGIN_SCHEMA = t.Object({
 		email: t.String({ format: 'email' }),
-		password: t.String(),
 	});
 	export type Provider = 'google';
 
 	export type PayloadOptions = {
 		email: string;
-		password: string;
 		firstName: string;
 		lastName: string;
 	};

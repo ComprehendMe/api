@@ -1,12 +1,15 @@
+import { FriendshipStatus } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { prisma } from 'src/common/prisma';
+import { genSnow } from 'src/common/snow';
 import { FriendService } from './service';
 
 type User = { email: string; name: string };
 
 const createUser = async ({ email, name }: User) => {
-	await prisma.user.create({
+	return await prisma.user.create({
 		data: {
+			id: genSnow(),
 			email,
 			name,
 		},
@@ -20,18 +23,18 @@ describe('FriendService', () => {
 
 	beforeAll(async () => {
 		const timestamp = Date.now();
-		userA = await createUser(
-			`User A ${timestamp}`,
-			`usera${timestamp}@test.com`,
-		);
-		userB = await createUser(
-			`User B ${timestamp}`,
-			`userb${timestamp}@test.com`,
-		);
-		userC = await createUser(
-			`User C ${timestamp}`,
-			`userc${timestamp}@test.com`,
-		);
+		userA = await createUser({
+			name: `User A ${timestamp}`,
+			email: `usera${timestamp}@test.com`,
+		});
+		userB = await createUser({
+			name: `User B ${timestamp}`,
+			email: `userb${timestamp}@test.com`,
+		});
+		userC = await createUser({
+			name: `User C ${timestamp}`,
+			email: `userc${timestamp}@test.com`,
+		});
 	});
 
 	afterAll(async () => {
@@ -87,15 +90,16 @@ describe('FriendService', () => {
 		const requests = await FriendService.listFriendRequests(userB.id);
 		expect(requests).toBeArray();
 		expect(requests.length).toBe(1);
-		expect(requests[0].requester.id).toBe(userA.id);
+		expect(requests[0]?.requester.id).toBe(userA.id);
 	});
 
 	it('should accept a friend request', async () => {
 		const requests = await FriendService.listFriendRequests(userB.id);
-		const requestId = requests[0].id;
+		const requestId = requests[0]?.id;
+		expect(requestId).toBeDefined();
 
 		const updated = await FriendService.acceptFriendRequest(
-			requestId,
+			requestId!,
 			userB.id,
 			FriendshipStatus.ACCEPTED,
 		);
@@ -106,12 +110,12 @@ describe('FriendService', () => {
 		const friendsA = await FriendService.listFriends(userA.id);
 		expect(friendsA).toBeArray();
 		expect(friendsA.length).toBe(1);
-		expect(friendsA[0].id).toBe(userB.id);
+		expect(friendsA[0]?.id).toBe(userB.id);
 
 		const friendsB = await FriendService.listFriends(userB.id);
 		expect(friendsB).toBeArray();
 		expect(friendsB.length).toBe(1);
-		expect(friendsB[0].id).toBe(userA.id);
+		expect(friendsB[0]?.id).toBe(userA.id);
 	});
 
 	it('should search users by name', async () => {

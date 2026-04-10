@@ -4,13 +4,11 @@ import { prisma } from 'src/common/prisma';
 import { PatientService } from './service';
 
 describe('PatientService', () => {
-	let patientId: bigint;
+	let patientId: bigint | undefined;
 
 	afterAll(async () => {
 		if (patientId) {
-			try {
-				await prisma.patient.delete({ where: { id: patientId } });
-			} catch {}
+			await prisma.patient.deleteMany({ where: { id: patientId } });
 		}
 	});
 
@@ -35,14 +33,14 @@ describe('PatientService', () => {
 	});
 
 	it('should get patient by id', async () => {
-		const patient = await PatientService.getById(patientId);
+		const patient = await PatientService.getById(patientId!);
 		expect(patient).toBeDefined();
-		expect(patient.id).toBe(patientId);
+		expect(patient.id).toBe(patientId!);
 	});
 
 	it('should update a patient', async () => {
 		const updated = await PatientService.update({
-			id: patientId,
+			id: patientId!,
 			name: 'Jane Doe',
 			difficulty: Difficulty.HARD,
 		});
@@ -51,11 +49,13 @@ describe('PatientService', () => {
 	});
 
 	it('should remove a patient', async () => {
-		const result = await PatientService.remove(patientId);
+		const removedPatientId = patientId!;
+		const result = await PatientService.remove(patientId!);
 		expect(result.ok).toBe(true);
+		patientId = undefined;
 
 		try {
-			await PatientService.getById(patientId);
+			await PatientService.getById(removedPatientId);
 		} catch (error: any) {
 			expect(error).toBeDefined();
 		}

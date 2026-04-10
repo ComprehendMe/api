@@ -4,25 +4,6 @@ API para simulação de pacientes virtuais, chat terapêutico com IA, relatório
 
 ---
 
-## 1. Arquitetura Geral
-
-Estrutura modular e escalável:
-
-```
-/src
- ├── controllers/   # Rotas HTTP (Elysia)
- ├── services/      # Lógica de negócio
- ├── models/        # Schemas Prisma
- ├── middleware/    # JWT, validação, logging
- ├── ai/            # Integração Gemini
- ├── storage/       # MinIO, gestão de ficheiros
- ├── cache/         # Redis (sessões, pacientes, fila)
- ├── utils/         # Funções auxiliares
- └── index.ts       # Ponto de entrada
-```
-
----
-
 ## 2. Fluxo por Módulo
 
 ### 2.1. Autenticação

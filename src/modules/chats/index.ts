@@ -1,15 +1,16 @@
 import type { Elysia } from 'elysia';
 import { t } from 'elysia';
-import { ChatService } from './service';
 import { ID_SCHEMA } from '../../common/snow';
+import { ChatService } from './service';
 
 export const route = (app: Elysia) => {
 	app.group('/chats', (group) =>
 		group
 			.get(
 				'/',
-				//@ts-expect-error
-				async ({ user }) => {
+				async (context) => {
+					const user = (context as typeof context & { user?: { id: bigint } }).user;
+					if (!user) throw new Error('Unauthorized');
 					return await ChatService.list(user.id);
 				},
 				{
@@ -18,32 +19,34 @@ export const route = (app: Elysia) => {
 			)
 			.post(
 				'/',
-				//@ts-expect-error
-				async ({ set, body, user }) => {
-					await ChatService.create({
+				async (context) => {
+					const user = (context as typeof context & { user?: { id: bigint } }).user;
+					if (!user) throw new Error('Unauthorized');
+					const chat = await ChatService.create({
 						userId: user.id,
-						patientId: body.patientId,
-						title: body.title,
+						patientId: context.body.patientId,
+						title: context.body.title,
 					});
 
-					set.status = 201;
-					return;
+					context.set.status = 201;
+					return chat;
 				},
 				{
 					body: t.Object({
 						patientId: ID_SCHEMA,
-						title: t.String(),
+						title: t.Optional(t.String({ minLength: 1 })),
 					}),
 					detail: { tags: ['Chats'], summary: 'Create a new chat' },
 				},
 			)
 			.get(
 				'/search',
-				//@ts-expect-error
-				async ({ query, user }) => {
+				async (context) => {
+					const user = (context as typeof context & { user?: { id: bigint } }).user;
+					if (!user) throw new Error('Unauthorized');
 					return await ChatService.findByPatientName(
 						user.id,
-						query.patientName ?? '',
+						context.query.patientName ?? '',
 					);
 				},
 				{
@@ -53,11 +56,24 @@ export const route = (app: Elysia) => {
 					detail: { tags: ['Chats'], summary: 'Search chats' },
 				},
 			)
+			.get(
+				'/:id',
+				async (context) => {
+					const user = (context as typeof context & { user?: { id: bigint } }).user;
+					if (!user) throw new Error('Unauthorized');
+					return await ChatService.getById(user.id, context.params.id);
+				},
+				{
+					params: t.Object({ id: ID_SCHEMA }),
+					detail: { tags: ['Chats'], summary: 'Get a chat by id' },
+				},
+			)
 			.delete(
 				'/:id',
-				//@ts-expect-error
-				async ({ params: { id }, user }) => {
-					await ChatService.delete(user.id, id);
+				async (context) => {
+					const user = (context as typeof context & { user?: { id: bigint } }).user;
+					if (!user) throw new Error('Unauthorized');
+					await ChatService.delete(user.id, context.params.id);
 					return { success: true };
 				},
 				{
@@ -67,4 +83,3 @@ export const route = (app: Elysia) => {
 			),
 	);
 };
-

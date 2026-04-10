@@ -33,6 +33,10 @@ export const createApp = async () => {
 							description: 'Endpoints related to project management.',
 						},
 						{
+							name: 'Patients',
+							description: 'Endpoints related to patient personas.',
+						},
+						{
 							name: 'Messages',
 							description:
 								'Endpoints related to message handling within chats.',
@@ -53,23 +57,19 @@ export const createApp = async () => {
 		.derive(({ request, cookie: { access }, set }) => {
 			const path = new URL(request.url).pathname;
 
-			// Debug: Ver se o cookie está chegando
-			if (env.NODE_ENV !== 'production') {
-				console.log(`[Auth Debug] Path: ${path}, Access Cookie: ${access?.value ? 'Present' : 'Missing'}`);
-			}
-
 			const NON_AUTH_ROUTES = [
 				'/health',
 				'/sessions/signup',
 				'/sessions/login',
 				'/sessions/oauth/google',
+				'/sessions/oauth/cb',
 				'/sessions/verify',
 				'/sessions/refresh',
 			];
 
 			if (path.startsWith('/docs') || NON_AUTH_ROUTES.includes(path)) return {};
 
-			if (!access.value) {
+			if (!access?.value) {
 				set.status = 401;
 				throw new Error('Unauthorized');
 			}

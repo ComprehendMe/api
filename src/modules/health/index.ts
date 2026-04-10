@@ -8,7 +8,16 @@ export const route = async (elysia: typeof app) => {
       "/health",
       async ({ set }) => {
         const health = await HealthService.check();
-        if (!health.ok) throw exception(httpCodes[http.InternalServerError], http.InternalServerError, health);
+        if (!health.ok) {
+          throw exception(
+            httpCodes[http.InternalServerError],
+            http.InternalServerError,
+            {
+              message: 'Health check failed',
+              health,
+            },
+          );
+        }
 
         set.status = httpCodes[http.Success];
         return health;
@@ -22,4 +31,3 @@ export const route = async (elysia: typeof app) => {
       }
     )
 }
-

@@ -1,30 +1,84 @@
 import { randomBytes } from 'node:crypto';
-import { dragonfly } from '../../common/dragonfly';
+import { dragonfly, FIVE_MINUTES_IN_SECONDS } from '../../common/dragonfly';
 import { env } from '../../common/env';
 import { prisma } from '../../common/prisma';
 import { exception, http, httpCodes } from '../../common/request';
 import { genSnow } from '../../common/snow';
 import { Auth, FIFTEEN_DAYS_IN_MS } from '../../config/auth';
-import type { SessionModel } from './model';
 
 export const MAX_SESSIONS_PER_USER = 5;
+
+type MagicLinkIntent = 'signup' | 'login';
+
+type MagicLinkPayload = {
+	email: string;
+	intent: MagicLinkIntent;
+};
+
+type SessionMetadata = {
+	ip: string;
+	os: string;
+	browser: string;
+};
 
 export class SessionService {
 	public static genMagicToken() {
 		return randomBytes(32).toString('hex');
 	}
 
-	//TODO: refatorar tudo isso aqui
-	public static async signup({
+	public static async requestMagicLink({
+		email,
+		intent,
+	}: MagicLinkPayload) {
+		const pendingKey = this.getPendingMagicLinkKey(email, intent);
+		const isPending = await dragonfly.get(pendingKey);
+
+		if (isPending) {
+			throw exception(
+				httpCodes[http.BadRequest],
+				http.BadRequest,
+				'A magic link has already been sent to this email. Please check your inbox.',
+			);
+		}
+
+		const existingUser = await prisma.user.findUnique({
+			where: { email },
+			select: { id: true },
+		});
+
+		if (intent === 'signup' && existingUser) {
+			throw exception(httpCodes[http.BadRequest], http.BadRequest, {
+				message: 'Email already taken',
+			});
+		}
+
+		if (intent === 'login' && !existingUser) {
+			throw exception(httpCodes[http.Unauthorized], http.Unauthorized, {
+				message: 'User not found',
+			});
+		}
+
+		const token = this.genMagicToken();
+		const tokenKey = this.getMagicLinkTokenKey(token);
+
+		await Promise.all([
+			dragonfly.setex(tokenKey, FIVE_MINUTES_IN_SECONDS, { email, intent }),
+			dragonfly.setex(pendingKey, FIVE_MINUTES_IN_SECONDS, '1'),
+		]);
+
+		return { token };
+	}
+
+	public static async verifyMagicLink({
 		browser,
 		ip,
 		os,
 		token,
-	}: SessionModel.SignupOptions) {
-		const REDIS_KEY = `signup:${token}`;
-		const email = await dragonfly.get<string>(REDIS_KEY);
+	}: SessionMetadata & { token: string }) {
+		const tokenKey = this.getMagicLinkTokenKey(token);
+		const payload = await dragonfly.get<MagicLinkPayload>(tokenKey);
 
-		if (!email) {
+		if (!payload) {
 			throw exception(
 				httpCodes[http.BadRequest],
 				http.BadRequest,
@@ -32,104 +86,56 @@ export class SessionService {
 			);
 		}
 
-		await dragonfly.del(REDIS_KEY);
+		await Promise.all([
+			dragonfly.del(tokenKey),
+			dragonfly.del(this.getPendingMagicLinkKey(payload.email, payload.intent)),
+		]);
 
-		const existingUser = await prisma.user.findUnique({ where: { email } });
-
-		if (existingUser) {
-			throw exception(
-				httpCodes[http.BadRequest],
-				http.BadRequest,
-				'Email already taken',
-			);
-		}
-
-		const user = await prisma.user.create({
-			data: {
-				id: genSnow(),
-				email,
-			},
+		let user = await prisma.user.findUnique({
+			where: { email: payload.email },
 			select: { id: true, email: true },
 		});
 
-		if (!user)
-			throw exception(
-				httpCodes[http.InternalServerError],
-				http.InternalServerError,
-				'Error to create user',
-			);
+		if (payload.intent === 'signup') {
+			if (user) {
+				throw exception(
+					httpCodes[http.BadRequest],
+					http.BadRequest,
+					'Email already taken',
+				);
+			}
 
-		const { refresh, hash } = Auth.genRefreshToken();
-		const access = Auth.genAccessToken(user);
+			user = await prisma.user.create({
+				data: {
+					id: genSnow(),
+					email: payload.email,
+				},
+				select: { id: true, email: true },
+			});
+		}
 
-		await prisma.session.create({
-			data: {
-				id: genSnow(),
-				os,
-				browser,
-				expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
-				hash,
-				ip,
-				userId: user.id,
-			},
-		});
-
-		return { access, refresh };
-	}
-
-	public static async login({
-		browser,
-		email,
-		ip,
-		os,
-	}: SessionModel.LoginOptions) {
-		const user = await prisma.user.findFirst({
-			where: { email },
-			select: {
-				id: true,
-				email: true,
-			},
-		});
-		if (!user)
+		if (!user) {
 			throw exception(
 				httpCodes[http.Unauthorized],
 				http.Unauthorized,
-				'Invalid email or password',
+				'User not found',
 			);
-
-		const sessionCount = await prisma.session.count({
-			where: { userId: user.id },
-		});
-
-		if (sessionCount >= MAX_SESSIONS_PER_USER) {
-			const oldestSession = await prisma.session.findFirst({
-				where: { userId: user.id },
-				orderBy: { id: 'asc' },
-			});
-			if (oldestSession) {
-				await prisma.session.delete({ where: { id: oldestSession.id } });
-			}
 		}
 
-		const { refresh, hash } = Auth.genRefreshToken();
-		const access = Auth.genAccessToken(user);
-
-		await prisma.session.create({
-			data: {
-				id: genSnow(),
-				os,
-				browser,
-				expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
-				hash,
-				ip,
-				userId: user.id,
-			},
+		const tokens = await this.issueSession(user, {
+			browser,
+			ip,
+			os,
 		});
 
-		return { access, refresh };
+		return {
+			...tokens,
+			intent: payload.intent,
+			user,
+		};
 	}
 
-	public static async authWithProvider(provider: SessionModel.Provider) {
+	public static async authWithProvider(provider: 'google') {
 		const {
 			AUTH0_CALLBACK_URL,
 			AUTH0_CLIENT_ID,
@@ -154,12 +160,7 @@ export class SessionService {
 		ip,
 		os,
 		browser,
-	}: {
-		code: string;
-		ip: string;
-		os: string;
-		browser: string;
-	}) {
+	}: SessionMetadata & { code: string }) {
 		const {
 			AUTH0_DOMAIN,
 			AUTH0_CLIENT_ID,
@@ -174,7 +175,7 @@ export class SessionService {
 				grant_type: 'authorization_code',
 				client_id: AUTH0_CLIENT_ID,
 				client_secret: AUTH0_CLIENT_SECRET,
-				code: code,
+				code,
 				redirect_uri: AUTH0_CALLBACK_URL,
 			}),
 		});
@@ -187,8 +188,17 @@ export class SessionService {
 			);
 		}
 
-		//@ts-expect-error
-		const { access_token } = await tokenResponse.json();
+		const { access_token } = (await tokenResponse.json()) as {
+			access_token?: string;
+		};
+
+		if (!access_token) {
+			throw exception(
+				httpCodes[http.InternalServerError],
+				http.InternalServerError,
+				'Missing provider access token',
+			);
+		}
 
 		const userinfoResponse = await fetch(`https://${AUTH0_DOMAIN}/userinfo`, {
 			headers: { Authorization: `Bearer ${access_token}` },
@@ -202,55 +212,61 @@ export class SessionService {
 			);
 		}
 
-		const userinfo = await userinfoResponse.json();
-		//@ts-expect-error
-		const { email, sub: googleId, given_name, family_name, avatar } = userinfo;
+		const userinfo = (await userinfoResponse.json()) as {
+			email?: string;
+			sub?: string;
+			given_name?: string;
+			family_name?: string;
+			avatar?: string;
+		};
+
+		if (!userinfo.email || !userinfo.sub) {
+			throw exception(
+				httpCodes[http.InternalServerError],
+				http.InternalServerError,
+				'Provider user info is incomplete',
+			);
+		}
 
 		const user = await prisma.user.upsert({
-			where: { email },
+			where: { email: userinfo.email },
 			create: {
 				id: genSnow(),
-				email,
-				name: `${given_name} ${family_name}`,
-				avatar,
-				googleId,
+				email: userinfo.email,
+				name: [userinfo.given_name, userinfo.family_name]
+					.filter(Boolean)
+					.join(' '),
+				avatar: userinfo.avatar,
+				googleId: userinfo.sub,
 			},
-			update: { googleId, avatar },
+			update: { googleId: userinfo.sub, avatar: userinfo.avatar },
 			select: { id: true, email: true },
 		});
 
-		if (!user)
+		if (!user) {
 			throw exception(
 				httpCodes[http.InternalDatabaseError],
 				http.InternalDatabaseError,
 				'Internal Database Error',
 			);
+		}
 
-		const { refresh, hash } = Auth.genRefreshToken();
-		const access = Auth.genAccessToken(user);
-
-		await prisma.session.create({
-			data: {
-				id: genSnow(),
-				os,
-				browser,
-				expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
-				hash,
-				ip,
-				userId: user.id,
-			},
+		return await this.issueSession(user, {
+			browser,
+			ip,
+			os,
 		});
-
-		return { access, refresh };
 	}
 
 	public static async refresh(token?: string) {
-		if (!token)
+		if (!token) {
 			throw exception(
 				httpCodes[http.Unauthorized],
 				http.Unauthorized,
 				'Missing token',
 			);
+		}
+
 		const hashed = Auth.hashRefreshToken(token);
 
 		const session = await prisma.session.findFirst({
@@ -259,12 +275,13 @@ export class SessionService {
 			},
 		});
 
-		if (!session)
+		if (!session) {
 			throw exception(
 				httpCodes[http.Unauthorized],
 				http.Unauthorized,
 				'Invalid refresh token',
 			);
+		}
 
 		const user = await prisma.user.findFirst({
 			where: {
@@ -276,12 +293,13 @@ export class SessionService {
 			},
 		});
 
-		if (!user)
+		if (!user) {
 			throw exception(
 				httpCodes[http.InternalServerError],
 				http.InternalServerError,
 				'Unknown User',
 			);
+		}
 
 		const { hash, refresh } = Auth.genRefreshToken();
 		const access = Auth.genAccessToken(user);
@@ -299,20 +317,14 @@ export class SessionService {
 	}
 
 	public static async list(userId: bigint, limit?: number) {
-		let where: any = { where: { userId } };
-
-		if (limit)
-			where = {
-				where: {
-					userId,
-				},
-				take: limit,
-			};
-
 		try {
 			return await prisma.session.findMany({
 				where: {
 					userId,
+				},
+				take: limit,
+				orderBy: {
+					expiresAt: 'desc',
 				},
 			});
 		} catch (error: any) {
@@ -332,7 +344,7 @@ export class SessionService {
 				lte: new Date(),
 			},
 		};
-		if (sessionId)
+		if (sessionId) {
 			where = {
 				userId,
 				expiresAt: {
@@ -340,6 +352,7 @@ export class SessionService {
 				},
 				id: sessionId,
 			};
+		}
 
 		try {
 			await prisma.session.deleteMany({
@@ -352,7 +365,9 @@ export class SessionService {
 		}
 	}
 
-	public static async logout(token: string) {
+	public static async logout(token?: string) {
+		if (!token) return;
+
 		const hash = Auth.hashRefreshToken(token);
 
 		const session = await prisma.session.findFirst({
@@ -361,17 +376,62 @@ export class SessionService {
 			},
 		});
 
-		if (!session)
-			throw exception(
-				httpCodes[http.Unauthorized],
-				http.Unauthorized,
-				'Invalid refresh token',
-			);
+		if (!session) return;
 
 		await prisma.session.delete({
 			where: {
 				id: session.id,
 			},
 		});
+	}
+
+	private static async issueSession(
+		user: { id: bigint; email: string },
+		metadata: SessionMetadata,
+	) {
+		const sessionCount = await prisma.session.count({
+			where: { userId: user.id },
+		});
+
+		if (sessionCount >= MAX_SESSIONS_PER_USER) {
+			const oldestSession = await prisma.session.findFirst({
+				where: { userId: user.id },
+				orderBy: { expiresAt: 'asc' },
+			});
+
+			if (oldestSession) {
+				await prisma.session.delete({
+					where: { id: oldestSession.id },
+				});
+			}
+		}
+
+		const { refresh, hash } = Auth.genRefreshToken();
+		const access = Auth.genAccessToken(user);
+
+		await prisma.session.create({
+			data: {
+				id: genSnow(),
+				os: metadata.os,
+				browser: metadata.browser,
+				expiresAt: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
+				hash,
+				ip: metadata.ip,
+				userId: user.id,
+			},
+		});
+
+		return { access, refresh };
+	}
+
+	private static getMagicLinkTokenKey(token: string) {
+		return `auth:magic:token:${token}`;
+	}
+
+	private static getPendingMagicLinkKey(
+		email: string,
+		intent: MagicLinkIntent,
+	) {
+		return `auth:magic:pending:${intent}:${email}`;
 	}
 }

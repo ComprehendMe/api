@@ -8,10 +8,13 @@ export const route = (elysia: typeof app) => {
 	elysia.group('/users', (gp) => {
 		gp.get(
 			'/@me',
-			async ({ user: { id: userId }, set }) => {
-				set.status = httpCodes[http.Success];
+			async (context) => {
+				const user = (context as typeof context & { user?: { id: bigint } }).user;
+				if (!user) throw new Error('Unauthorized');
 
-				const { avatar, email, name } = await MeService.getById(userId);
+				context.set.status = httpCodes[http.Success];
+
+				const { avatar, email, name } = await MeService.getById(user.id);
 
 				return {
 					avatar: `${env.BUCKET_PUBLIC_URL}/avatars/${avatar}.webp`,
@@ -31,8 +34,11 @@ export const route = (elysia: typeof app) => {
 
 		gp.post(
 			'/avatar',
-			async ({ user: { id: userId }, set }) => {
-				return MeService.getAvatar(userId);
+			async (context) => {
+				const user = (context as typeof context & { user?: { id: bigint } }).user;
+				if (!user) throw new Error('Unauthorized');
+
+				return MeService.getAvatar(user.id);
 			},
 			{
 				detail: {
@@ -46,8 +52,11 @@ export const route = (elysia: typeof app) => {
 
 		gp.delete(
 			'/avatar',
-			async ({ user: { id: userId }, set }) => {
-				return MeService.removeAvatar(userId);
+			async (context) => {
+				const user = (context as typeof context & { user?: { id: bigint } }).user;
+				if (!user) throw new Error('Unauthorized');
+
+				return MeService.removeAvatar(user.id);
 			},
 			{
 				detail: {
@@ -59,8 +68,11 @@ export const route = (elysia: typeof app) => {
 		);
 		gp.put(
 			'/@me',
-			async ({ body, user: { id: userId }, set }) => {
-				return await MeService.update({ id: userId, ...body });
+			async (context) => {
+				const user = (context as typeof context & { user?: { id: bigint } }).user;
+				if (!user) throw new Error('Unauthorized');
+
+				return await MeService.update({ id: user.id, ...context.body });
 			},
 			{
 				//NOTE: dps é importante colocar alguma validação nos nomes
