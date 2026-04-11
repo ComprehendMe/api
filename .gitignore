@@ -45,3 +45,5 @@ yarn-error.log*
 package-lock.json
 **/*.bun
 /src/generated/prisma
+bun
+cookies.txt

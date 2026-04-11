@@ -4,7 +4,7 @@ import { ID_SCHEMA } from '../../common/snow';
 import { MessageService } from './service';
 
 export const route = (app: Elysia) => {
-	app.group('/chats/:chatId/messages', (group) =>
+	app.group('/chats/:id/messages', (group) =>
 		group
 			.get(
 				'/',
@@ -12,10 +12,10 @@ export const route = (app: Elysia) => {
 					const user = (context as typeof context & { user?: { id: bigint } }).user;
 					if (!user) throw new Error('Unauthorized');
 
-					return await MessageService.list(BigInt(context.params.chatId), user.id);
+					return await MessageService.list(BigInt(context.params.id), user.id);
 				},
 				{
-					params: t.Object({ chatId: ID_SCHEMA }),
+					params: t.Object({ id: ID_SCHEMA }),
 					detail: {
 						tags: ['Messages'],
 						summary: 'Get chat history',
@@ -29,13 +29,13 @@ export const route = (app: Elysia) => {
 					if (!user) throw new Error('Unauthorized');
 
 					return await MessageService.send(
-						BigInt(context.params.chatId),
+						BigInt(context.params.id),
 						user.id,
 						context.body.content,
 					);
 				},
 				{
-					params: t.Object({ chatId: ID_SCHEMA }),
+					params: t.Object({ id: ID_SCHEMA }),
 					body: t.Object({
 						content: t.String({ minLength: 1 }),
 					}),
