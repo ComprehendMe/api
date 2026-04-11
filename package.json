@@ -6,7 +6,8 @@
 		"migrate": "prisma generate && prisma migrate dev",
 		"build": "bun run src/build.ts",
 		"test": "bun run src/test/index.test.ts",
-		"seed": "bun run prisma/seed.ts"
+		"seed": "bun run prisma/seed.ts",
+		"demo": "bun run demo-chat.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.925.0",
