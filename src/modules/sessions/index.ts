@@ -57,10 +57,7 @@ export const route = (elysia: typeof app) => {
 					email: body.email,
 					intent: 'signup',
 				});
-				const magicLink = new URL(
-					`/sessions/verify?token=${token}`,
-					env.APP_URL,
-				);
+				const magicLink = new URL(`/sessions/verify?token=${token}`, env.APP_URL);
 
 				await mail({
 					to: body.email,
@@ -138,10 +135,7 @@ export const route = (elysia: typeof app) => {
 					email: body.email,
 					intent: 'login',
 				});
-				const magicLink = new URL(
-					`/sessions/verify?token=${token}`,
-					env.APP_URL,
-				);
+				const magicLink = new URL(`/sessions/verify?token=${token}`, env.APP_URL);
 
 				await mail({
 					to: body.email,
