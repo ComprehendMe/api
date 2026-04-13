@@ -26,7 +26,7 @@ export const FIFTEEN_MIN_IN_MS = 900000;
 export const FIFTEEN_DAYS_IN_MS = 1.296e9; //dps decidir esse intervalo
 
 export namespace Auth {
-  export const FIFTY_MINUTES_IN_MS = 100 * 60 * 15
+  export const FIFTY_MINUTES_IN_MS = 8 * 60 * 60 * 1000
   export const sign = createSigner({ key, expiresIn: FIFTY_MINUTES_IN_MS, });
 
   export const verify = (token: string) => {
