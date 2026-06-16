@@ -1,0 +1,45 @@
+import * as e from "envalid"
+import { normalizeGeminiApiKey } from "./gemini-key"
+
+export const env = e.cleanEnv(process.env, {
+  PORT: e.port(),
+  DATABASE_URL: e.url(),
+  NODE_ENV: e.str({ default: "dev" }),
+
+  REDIS_HOST: e.str(),
+  REDIS_PORT: e.num(),
+
+  APP_URL: e.str(),
+  JWT_SECRET: e.str(),
+
+  AUTH0_CLIENT_ID: e.str(),
+  AUTH0_CLIENT_SECRET: e.str(),
+  AUTH0_DOMAIN: e.str(),
+  AUTH0_AUDIENCE: e.str(),
+  AUTH0_CALLBACK_URL: e.str({
+    default: "",
+    desc: "OAuth callback; defaults to APP_URL + /api/sessions/oauth/cb",
+  }),
+
+  RESEND_SECRET_KEY: e.str(),
+
+  SMTP_HOST: e.str(),
+  SMTP_USER: e.email(),
+  SMTP_PORT: e.port(),
+  SMTP_PASS: e.str(),
+
+  BUCKET_ACCESS_KEY: e.str(),
+  BUCKET_SECRET_KEY: e.str(),
+  BUCKET_ENDPOINT: e.str(),
+  BUCKET_NAME: e.str(),
+  BUCKET_PUBLIC_URL: e.str(),
+
+  STRIPE_SECRET_KEY: e.str(),
+  STRIPE_WEBHOOK_SECRET: e.str(),
+  GEMINI_API_KEY: e.str({
+    desc: "Google AI Studio API key (https://aistudio.google.com/apikey)",
+    transform: normalizeGeminiApiKey,
+  }),
+  /** When true, skips Gemini and returns simulated patient replies (local dev). */
+  GEMINI_MOCK: e.bool({ default: false }),
+})
