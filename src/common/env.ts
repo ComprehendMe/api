@@ -36,6 +36,10 @@ export const env = e.cleanEnv(process.env, {
 
   STRIPE_SECRET_KEY: e.str(),
   STRIPE_WEBHOOK_SECRET: e.str(),
+  CORS_ORIGIN: e.str({
+    default: "",
+    desc: "Additional comma-separated CORS origins (e.g. https://comprehendme.vercel.app)",
+  }),
   GEMINI_API_KEY: e.str({
     desc: "Google AI Studio API key (https://aistudio.google.com/apikey)",
     transform: normalizeGeminiApiKey,

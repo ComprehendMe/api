@@ -12,6 +12,7 @@ const corsOrigins = [
 	'http://localhost:3000',
 	'http://127.0.0.1:3000',
 	env.APP_URL.replace(/\/$/, ''),
+	...env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean),
 ];
 
 export const createApp = async () => {
