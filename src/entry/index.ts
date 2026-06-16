@@ -82,6 +82,8 @@ export const createApp = async () => {
 				'/sessions/oauth/cb',
 				'/sessions/verify',
 				'/sessions/refresh',
+				'/sessions/logout',
+				'/ws',
 			];
 
 			if (path.startsWith('/docs') || NON_AUTH_ROUTES.includes(path)) return {};

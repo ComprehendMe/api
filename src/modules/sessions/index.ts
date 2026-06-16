@@ -28,21 +28,24 @@ const setSessionCookies = (
 		throw new Error('Cookie store is not available');
 	}
 
+	const secure = env.COOKIE_SECURE || isProd;
+	const sameSite = env.COOKIE_SAMESITE as 'lax' | 'none' | 'strict';
+
 	cookie.refresh.set({
 		value: refresh,
 		httpOnly: true,
-		secure: isProd,
+		secure,
 		path: '/',
-		sameSite: 'lax',
+		sameSite,
 		expires: new Date(Date.now() + FIFTEEN_DAYS_IN_MS),
 	});
 
 	cookie.access.set({
 		value: access,
 		httpOnly: true,
-		secure: isProd,
+		secure,
 		path: '/',
-		sameSite: 'lax',
+		sameSite,
 		expires: new Date(Date.now() + FIFTEEN_MIN_IN_MS),
 	});
 };

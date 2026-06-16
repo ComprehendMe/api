@@ -21,6 +21,15 @@ export const env = e.cleanEnv(process.env, {
     desc: "OAuth callback; defaults to APP_URL + /api/sessions/oauth/cb",
   }),
 
+  COOKIE_SECURE: e.bool({
+    default: false,
+    desc: "Cookie Secure flag (true for tunnel/HTTPS)",
+  }),
+  COOKIE_SAMESITE: e.str({
+    default: "lax",
+    desc: "Cookie SameSite (lax | none | strict)",
+  }),
+
   RESEND_SECRET_KEY: e.str(),
 
   SMTP_HOST: e.str(),
