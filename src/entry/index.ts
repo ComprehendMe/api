@@ -1,3 +1,4 @@
+import { cors } from '@elysiajs/cors';
 import openapi from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { ip } from 'elysia-ip';
@@ -16,20 +17,14 @@ const corsOrigins = [
 
 export const createApp = async () => {
 	const app = new Elysia({ name: 'ComprehendMe' })
-		.onRequest(({ set, request }) => {
-			const origin = request.headers.get('origin');
-			if (origin && corsOrigins.includes(origin)) {
-				set.headers['access-control-allow-origin'] = origin;
-				set.headers['access-control-allow-credentials'] = 'true';
-				set.headers['access-control-allow-methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
-				set.headers['access-control-allow-headers'] = 'Content-Type, Authorization';
-				set.headers['vary'] = 'Origin';
-				if (request.method === 'OPTIONS') {
-					set.status = 204;
-					return new Response(null, { status: 204 });
-				}
-			}
-		})
+		.use(
+			cors({
+				origin: corsOrigins,
+				credentials: true,
+				methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+				allowedHeaders: ['Content-Type', 'Authorization'],
+			}),
+		)
 		.use(ip())
 		.use(
 			openapi({
