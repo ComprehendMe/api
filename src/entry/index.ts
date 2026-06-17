@@ -17,19 +17,16 @@ const corsOrigins = [
 export const createApp = async () => {
 	const app = new Elysia({ name: 'ComprehendMe' })
 		.onRequest(({ set, request }) => {
-			if (request.method === 'OPTIONS') {
-				const origin = request.headers.get('origin');
-				if (origin && corsOrigins.includes(origin)) {
-					return new Response(null, {
-						status: 204,
-						headers: {
-							'access-control-allow-origin': origin,
-							'access-control-allow-credentials': 'true',
-							'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-							'access-control-allow-headers': 'Content-Type, Authorization',
-							'vary': 'Origin',
-						},
-					});
+			const origin = request.headers.get('origin');
+			if (origin && corsOrigins.includes(origin)) {
+				set.headers['access-control-allow-origin'] = origin;
+				set.headers['access-control-allow-credentials'] = 'true';
+				set.headers['access-control-allow-methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+				set.headers['access-control-allow-headers'] = 'Content-Type, Authorization';
+				set.headers['vary'] = 'Origin';
+				if (request.method === 'OPTIONS') {
+					set.status = 204;
+					return new Response(null, { status: 204 });
 				}
 			}
 		})
@@ -115,15 +112,6 @@ export const createApp = async () => {
 			}
 
 			return { user };
-		})
-		.mapResponse((response, { request, set }) => {
-			const origin = request.headers.get('origin');
-			if (origin && corsOrigins.includes(origin)) {
-				set.headers['access-control-allow-origin'] = origin;
-				set.headers['access-control-allow-credentials'] = 'true';
-				set.headers['vary'] = 'Origin';
-			}
-			return response;
 		})
 		.onError(({ request, set }) => {
 			const origin = request.headers.get('origin');
