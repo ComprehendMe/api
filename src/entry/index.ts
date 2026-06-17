@@ -1,4 +1,3 @@
-import { cors } from '@elysiajs/cors';
 import openapi from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { ip } from 'elysia-ip';
@@ -17,14 +16,23 @@ const corsOrigins = [
 
 export const createApp = async () => {
 	const app = new Elysia({ name: 'ComprehendMe' })
-		.use(
-			cors({
-				origin: corsOrigins,
-				credentials: true,
-				methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-				allowedHeaders: ['Content-Type', 'Authorization'],
-			}),
-		)
+		.onRequest(({ set, request }) => {
+			if (request.method === 'OPTIONS') {
+				const origin = request.headers.get('origin');
+				if (origin && corsOrigins.includes(origin)) {
+					return new Response(null, {
+						status: 204,
+						headers: {
+							'access-control-allow-origin': origin,
+							'access-control-allow-credentials': 'true',
+							'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+							'access-control-allow-headers': 'Content-Type, Authorization',
+							'vary': 'Origin',
+						},
+					});
+				}
+			}
+		})
 		.use(ip())
 		.use(
 			openapi({
@@ -107,6 +115,23 @@ export const createApp = async () => {
 			}
 
 			return { user };
+		})
+		.mapResponse((response, { request, set }) => {
+			const origin = request.headers.get('origin');
+			if (origin && corsOrigins.includes(origin)) {
+				set.headers['access-control-allow-origin'] = origin;
+				set.headers['access-control-allow-credentials'] = 'true';
+				set.headers['vary'] = 'Origin';
+			}
+			return response;
+		})
+		.onError(({ request, set }) => {
+			const origin = request.headers.get('origin');
+			if (origin && corsOrigins.includes(origin)) {
+				set.headers['access-control-allow-origin'] = origin;
+				set.headers['access-control-allow-credentials'] = 'true';
+				set.headers['vary'] = 'Origin';
+			}
 		});
 
 	return app;
