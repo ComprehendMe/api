@@ -9,6 +9,8 @@ import { ReviewService } from '../modules/review/service';
 const connection = {
 	host: env.REDIS_HOST,
 	port: env.REDIS_PORT,
+	password: env.REDIS_PASSWORD || undefined,
+	tls: env.REDIS_PASSWORD ? {} : undefined,
 };
 
 export const AI_QUEUE_NAME = 'ai-queue';
