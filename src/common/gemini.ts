@@ -83,13 +83,18 @@ export async function askGemini(
 	}
 
 	try {
-		const result = await generate('gemini-flash-latest');
+		const result = await generate('gemini-2.0-flash');
 		return result.text || '';
 	} catch (error) {
 		if (isGeminiAuthError(error)) {
 			throw new GeminiConfigurationError(
 				'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env (must start with AIza).',
 			);
+		}
+
+		if ((error as any)?.status === 429) {
+			console.warn('[Gemini] Quota exceeded, using mock fallback');
+			return mockPatientReply(newMessage);
 		}
 
 		if ((error as any)?.status === 503) {
@@ -104,6 +109,10 @@ export async function askGemini(
 					throw new GeminiConfigurationError(
 						'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env (must start with AIza).',
 					);
+				}
+				if ((fallbackError as any)?.status === 429) {
+					console.warn('[Gemini] Fallback quota exceeded, using mock fallback');
+					return mockPatientReply(newMessage);
 				}
 				throw fallbackError;
 			}
