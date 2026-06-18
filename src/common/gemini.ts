@@ -51,14 +51,34 @@ function mockPatientReply(userMessage: string): string {
 	return `Thank you for sharing that with me. When you said "${snippet}", it felt like this matters to you. Can you help me understand what you are feeling right now?`;
 }
 
+const QUALITIES = ['strong', 'adequate', 'needs_attention', 'needs_adjustment'] as const;
+
+function mockReviewResponse(moveContent: string): string {
+	const score = Math.ceil(Math.random() * 6) + 2;
+	const quality = score >= 8 ? 'strong' : score >= 5 ? 'adequate' : score >= 3 ? 'needs_attention' : 'needs_adjustment';
+	const snippets = moveContent.length > 60 ? `${moveContent.slice(0, 60)}…` : moveContent;
+	return JSON.stringify({
+		score,
+		quality,
+		category: 'Communication',
+		feedback: `The intervention "${snippets}" was analyzed. Consider exploring the patient's perspective further while maintaining therapeutic rapport.`,
+		highlights: ['Active listening attempt', 'Patient-centered approach'],
+		improvements: ['Ask more open-ended questions', 'Validate patient emotions'],
+	});
+}
+
 export async function askGemini(
 	systemInstruction: string,
 	history: Content[],
 	newMessage: string,
+	options?: { context?: 'chat' | 'review' },
 ) {
+	const context = options?.context ?? 'chat';
+
 	if (env.GEMINI_MOCK) {
 		void systemInstruction;
 		void history;
+		if (context === 'review') return mockReviewResponse(newMessage);
 		return mockPatientReply(newMessage);
 	}
 
@@ -94,6 +114,7 @@ export async function askGemini(
 
 		if ((error as any)?.status === 429) {
 			console.warn('[Gemini] Quota exceeded, using mock fallback');
+			if (context === 'review') return mockReviewResponse(newMessage);
 			return mockPatientReply(newMessage);
 		}
 
@@ -112,6 +133,7 @@ export async function askGemini(
 				}
 				if ((fallbackError as any)?.status === 429) {
 					console.warn('[Gemini] Fallback quota exceeded, using mock fallback');
+					if (context === 'review') return mockReviewResponse(newMessage);
 					return mockPatientReply(newMessage);
 				}
 				throw fallbackError;

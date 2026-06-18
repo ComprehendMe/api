@@ -513,7 +513,7 @@ Respond in English with JSON only, following this exact schema:
   "improvements": [<string>, ...]
 }`;
 
-        const raw = await askGemini(analysisPrompt, [], '');
+        const raw = await askGemini(analysisPrompt, [], '', { context: 'review' });
         moves.push(parseAnalysis(move, raw, i));
       }
 
