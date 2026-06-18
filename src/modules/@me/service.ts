@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { Bucket } from 'src/common/bucket';
+import { Cloudinary } from 'src/common/cloudinary';
 import { dragonfly, FIFTEEN_MINUTES_IN_SECONDS } from 'src/common/dragonfly';
 import { env } from 'src/common/env';
 import { mail } from 'src/common/mail';
@@ -21,9 +21,12 @@ interface CompleteOnboarding {
 }
 
 export class MeService {
-	public static avatarPublicUrl(userId: bigint, avatarHash: string | null) {
-		if (!avatarHash) return null;
-		return `${env.BUCKET_PUBLIC_URL}/avatars/${userId}/${avatarHash}.webp`;
+	public static avatarPublicUrl(userId: bigint, avatar: string | null) {
+		if (!avatar) return null;
+		if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+			return avatar;
+		}
+		return `https://res.cloudinary.com/${env.CLOUDINARY_CLOUD_NAME}/image/upload/${avatar}`;
 	}
 
 	public static async getById(id: bigint) {
@@ -49,7 +52,7 @@ export class MeService {
 	}
 
 	public static async getAvatar(id: bigint) {
-		const { hash, route } = await Bucket.genPresignedUrl(`avatars/${id}`);
+		const hash = randomBytes(8).toString('hex');
 
 		await prisma.user.update({
 			data: {
@@ -60,7 +63,7 @@ export class MeService {
 			},
 		});
 
-		return { route, hash };
+		return { route: null, hash };
 	}
 
 	public static async uploadAvatar(id: bigint, body: Buffer) {
@@ -81,14 +84,16 @@ export class MeService {
 			});
 		}
 
-		if (user.avatar) {
-			// Best-effort cleanup; a missing or inaccessible old object must not block the new upload.
-			await Bucket.remove(`avatars/${id}/${user.avatar}`);
+		if (user.avatar && !user.avatar.startsWith('http')) {
+			await Cloudinary.deleteImage(user.avatar).catch(() => {});
 		}
 
-		let hash: string;
+		let publicId: string;
+		let url: string;
 		try {
-			hash = await Bucket.putWebp(`avatars/${id}`, body);
+			const result = await Cloudinary.uploadImage(body);
+			publicId = result.publicId;
+			url = result.url;
 		} catch {
 			throw exception(
 				httpCodes[http.InternalServerError],
@@ -99,12 +104,12 @@ export class MeService {
 
 		await prisma.user.update({
 			where: { id },
-			data: { avatar: hash },
+			data: { avatar: publicId },
 		});
 
 		return {
 			ok: true,
-			avatar: MeService.avatarPublicUrl(id, hash),
+			avatar: url,
 		};
 	}
 
@@ -128,13 +133,8 @@ export class MeService {
 			return { ok: true };
 		}
 
-		const { ok } = await Bucket.remove(`avatars/${id}/${user.avatar}`);
-		if (!ok) {
-			throw exception(
-				httpCodes[http.InternalServerError],
-				http.InternalServerError,
-				{ message: 'Failed to remove avatar from bucket' },
-			);
+		if (!user.avatar.startsWith('http')) {
+			await Cloudinary.deleteImage(user.avatar).catch(() => {});
 		}
 
 		await prisma.user.update({

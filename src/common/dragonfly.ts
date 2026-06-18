@@ -17,6 +17,8 @@ export class Dragonfly {
 		const opt = {
 			port: env.REDIS_PORT,
 			host: env.REDIS_HOST,
+			password: env.REDIS_PASSWORD || undefined,
+			tls: env.REDIS_PASSWORD ? {} : undefined,
 			maxRetriesPerRequest: 3,
 			enableReadyCheck: true,
 		};

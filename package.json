@@ -18,6 +18,7 @@
 		"@google/genai": "^1.33.0",
 		"@prisma/client": "^6.17.1",
 		"bullmq": "^5.66.4",
+		"cloudinary": "^2.5.0",
 		"elysia": "latest",
 		"elysia-ip": "^1.0.10",
 		"envalid": "^8.1.0",

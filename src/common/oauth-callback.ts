@@ -27,7 +27,13 @@ function isAllowedDevOrigin(origin: string) {
 
 /** Resolve callback URL from the browser origin (via proxy headers or Referer). */
 export function resolveOAuthCallbackUrl(request: Request): string {
+	// When AUTH0_CALLBACK_URL is explicitly set, prefer it over dynamic resolution.
+	// This is essential when frontend (Vercel) and backend (Tailscale) are on different origins.
 	const configured = defaultOAuthCallbackUrl();
+
+	if (env.AUTH0_CALLBACK_URL?.trim()) {
+		return env.AUTH0_CALLBACK_URL.trim();
+	}
 
 	const forwardedHost = request.headers.get('x-forwarded-host');
 	const forwardedProto =

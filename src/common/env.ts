@@ -8,6 +8,7 @@ export const env = e.cleanEnv(process.env, {
 
   REDIS_HOST: e.str(),
   REDIS_PORT: e.num(),
+  REDIS_PASSWORD: e.str({ default: '' }),
 
   APP_URL: e.str(),
   JWT_SECRET: e.str(),
@@ -15,7 +16,7 @@ export const env = e.cleanEnv(process.env, {
   AUTH0_CLIENT_ID: e.str(),
   AUTH0_CLIENT_SECRET: e.str(),
   AUTH0_DOMAIN: e.str(),
-  AUTH0_AUDIENCE: e.str(),
+  AUTH0_AUDIENCE: e.str({ default: "" }),
   AUTH0_CALLBACK_URL: e.str({
     default: "",
     desc: "OAuth callback; defaults to APP_URL + /api/sessions/oauth/cb",
@@ -37,11 +38,11 @@ export const env = e.cleanEnv(process.env, {
   SMTP_PORT: e.port(),
   SMTP_PASS: e.str(),
 
-  BUCKET_ACCESS_KEY: e.str(),
-  BUCKET_SECRET_KEY: e.str(),
-  BUCKET_ENDPOINT: e.str(),
-  BUCKET_NAME: e.str(),
-  BUCKET_PUBLIC_URL: e.str(),
+  BUCKET_ACCESS_KEY: e.str({ default: '' }),
+  BUCKET_SECRET_KEY: e.str({ default: '' }),
+  BUCKET_ENDPOINT: e.str({ default: '' }),
+  BUCKET_NAME: e.str({ default: '' }),
+  BUCKET_PUBLIC_URL: e.str({ default: '' }),
 
   STRIPE_SECRET_KEY: e.str(),
   STRIPE_WEBHOOK_SECRET: e.str(),
@@ -55,4 +56,8 @@ export const env = e.cleanEnv(process.env, {
   }),
   /** When true, skips Gemini and returns simulated patient replies (local dev). */
   GEMINI_MOCK: e.bool({ default: false }),
+
+  CLOUDINARY_CLOUD_NAME: e.str(),
+  CLOUDINARY_API_KEY: e.str(),
+  CLOUDINARY_API_SECRET: e.str(),
 })
