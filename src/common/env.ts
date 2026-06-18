@@ -11,6 +11,7 @@ export const env = e.cleanEnv(process.env, {
   REDIS_PASSWORD: e.str({ default: '' }),
 
   APP_URL: e.str(),
+  FRONTEND_URL: e.str(),
   JWT_SECRET: e.str(),
 
   AUTH0_CLIENT_ID: e.str(),

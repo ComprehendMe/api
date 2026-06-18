@@ -67,7 +67,7 @@ export const route = (elysia: typeof app) => {
 				});
 				const magicLink = new URL(
 					`/auth/verify?token=${encodeURIComponent(token)}`,
-					env.APP_URL,
+					env.FRONTEND_URL,
 				);
 
 				await mail({
@@ -151,7 +151,7 @@ export const route = (elysia: typeof app) => {
 				});
 				const magicLink = new URL(
 					`/auth/verify?token=${encodeURIComponent(token)}`,
-					env.APP_URL,
+					env.FRONTEND_URL,
 				);
 
 				await mail({
@@ -301,7 +301,7 @@ export const route = (elysia: typeof app) => {
 		group.get(
 			'/oauth/cb',
 			async ({ query, request, cookie, ip, redirect }) => {
-				const appBase = env.APP_URL.replace(/\/$/, '');
+				const appBase = env.FRONTEND_URL.replace(/\/$/, '');
 				const dashboardUrl = `${appBase}/dashboard`;
 
 				try {
@@ -331,7 +331,7 @@ export const route = (elysia: typeof app) => {
 				} catch (e: unknown) {
 					const message =
 						e instanceof Error ? e.message : 'OAuth sign-in failed';
-					const target = new URL('/auth/oauth-error', env.APP_URL);
+					const target = new URL('/auth/oauth-error', env.FRONTEND_URL);
 					target.searchParams.set('message', message);
 					return redirect(target.href, 302);
 				}

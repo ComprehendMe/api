@@ -197,7 +197,7 @@ export class MeService {
 		]);
 
 		const confirmLink = new URL(
-			`/api/auth/verify-email-change?token=${encodeURIComponent(token)}`,
+			`/auth/verify-email-change?token=${encodeURIComponent(token)}`,
 			env.APP_URL,
 		);
 
