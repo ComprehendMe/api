@@ -201,12 +201,16 @@ export class MeService {
 			env.APP_URL,
 		);
 
-		await mail({
-			to: newEmail,
-			subject: 'Confirm your email change - ComprehendMe',
-			html: emailChangeTemplate(confirmLink.href, newEmail),
-			text: `Confirm your email change by clicking here: ${confirmLink.href}`,
-		});
+		try {
+			await mail({
+				to: newEmail,
+				subject: 'Confirm your email change - ComprehendMe',
+				html: emailChangeTemplate(confirmLink.href, newEmail),
+				text: `Confirm your email change by clicking here: ${confirmLink.href}`,
+			});
+		} catch (err) {
+			console.error('Failed to send email change notification:', err);
+		}
 
 		return { ok: true };
 	}

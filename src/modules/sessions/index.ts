@@ -70,12 +70,16 @@ export const route = (elysia: typeof app) => {
 					env.FRONTEND_URL,
 				);
 
-				await mail({
-					to: body.email,
-					subject: 'Welcome to ComprehendMe - Verify your email',
-					html: signupTemplate(magicLink.href),
-					text: `Verify your email by clicking here: ${magicLink.href}`,
-				});
+				try {
+					await mail({
+						to: body.email,
+						subject: 'Welcome to ComprehendMe - Verify your email',
+						html: signupTemplate(magicLink.href),
+						text: `Verify your email by clicking here: ${magicLink.href}`,
+					});
+				} catch (err) {
+					console.error('Failed to send signup email:', err);
+				}
 
 				set.status = httpCodes[http.Created];
 				return { ok: true, message: 'Magic link sent to your email.' };
@@ -154,12 +158,16 @@ export const route = (elysia: typeof app) => {
 					env.FRONTEND_URL,
 				);
 
-				await mail({
-					to: body.email,
-					subject: 'Your ComprehendMe magic link',
-					html: loginTemplate(magicLink.href),
-					text: `Sign in by clicking here: ${magicLink.href}`,
-				});
+				try {
+					await mail({
+						to: body.email,
+						subject: 'Your ComprehendMe magic link',
+						html: loginTemplate(magicLink.href),
+						text: `Sign in by clicking here: ${magicLink.href}`,
+					});
+				} catch (err) {
+					console.error('Failed to send login email:', err);
+				}
 
 				set.status = httpCodes[http.Success];
 				return { ok: true, message: 'Magic link sent to your email.' };

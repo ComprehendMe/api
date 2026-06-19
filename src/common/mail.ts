@@ -1,31 +1,14 @@
 import { createTransport } from "nodemailer";
 import { env } from "./env";
-import { Resend } from "resend";
 
-const { SMTP_USER, SMTP_PORT, SMTP_HOST, SMTP_PASS } = env;
-const resend = new Resend(env.RESEND_SECRET_KEY)
+const { SMTP_USER, SMTP_PORT, SMTP_HOST, SMTP_PASS, SMTP_FROM } = env;
+
 type MailOptions = {
   to: string;
   subject?: string;
   text?: string;
   html?: string;
 }
-
-/*
-  const { error } = await resend.emails.send({
-    to: [to],
-    from: env.SMTP_USER,
-    subject: subject ?? '',
-    text: text ?? '',
-    html: html ?? ''
-  })
-
-  if (error) {
-    console.log(error);
-    throw new Error('Error to send mail');
-  }
- */
-
 
 export const mail = async ({ to, html, subject, text }: MailOptions) => {
   const transport = createTransport({
@@ -35,8 +18,20 @@ export const mail = async ({ to, html, subject, text }: MailOptions) => {
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS
-    }
+    },
+    connectionTimeout: 15000,
+    socketTimeout: 15000,
   });
 
-  await transport.sendMail({ to, subject, html, text })
+  try {
+    await transport.sendMail({
+      from: SMTP_FROM || SMTP_USER,
+      to,
+      subject,
+      html,
+      text,
+    });
+  } finally {
+    transport.close();
+  }
 }

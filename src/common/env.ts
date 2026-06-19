@@ -35,9 +35,10 @@ export const env = e.cleanEnv(process.env, {
   RESEND_SECRET_KEY: e.str(),
 
   SMTP_HOST: e.str(),
-  SMTP_USER: e.email(),
+  SMTP_USER: e.str(),
   SMTP_PORT: e.port(),
   SMTP_PASS: e.str(),
+  SMTP_FROM: e.str({ default: '' }),
 
   BUCKET_ACCESS_KEY: e.str({ default: '' }),
   BUCKET_SECRET_KEY: e.str({ default: '' }),
