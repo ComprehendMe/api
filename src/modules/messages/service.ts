@@ -1,6 +1,5 @@
-import { createSystemPrompt, type PatientInfo } from '../../common/gemini';
+import { askGemini, createSystemPrompt, type PatientInfo } from '../../common/gemini';
 import { prisma } from '../../common/prisma';
-import { aiQueue } from '../../common/queue';
 import { dragonfly } from '../../common/dragonfly';
 import { exception, http, httpCodes } from '../../common/request';
 import { genSnow, getSnowCreation } from '../../common/snow';
@@ -86,20 +85,30 @@ export class MessageService {
 			};
 			const systemInstruction = createSystemPrompt(personaInfo);
 
-			console.log(`[Queue] Adding job for Chat ${chatId}`);
+			console.log(`[Messages] Calling Gemini for Chat ${chatId}`);
 
-			await aiQueue.add('generate-response', {
-				chatId: chatId.toString(),
-				history: formattedHistory,
+			const response = await askGemini(
 				systemInstruction,
-				lastUserMessage: content,
+				formattedHistory,
+				content,
+			);
+
+			const modelMessageId = genSnow();
+			await prisma.message.create({
+				data: {
+					id: modelMessageId,
+					chatId,
+					role: 'model',
+					content: response || '',
+				},
 			});
 
-			console.log('[Queue] Job added successfully');
+			console.log('[Messages] Model response saved');
 
 			return {
-				status: 'queued',
+				status: 'sent',
 				userMessageId: userMessageId.toString(),
+				modelMessageId: modelMessageId.toString(),
 			};
 		} catch (error: any) {
 			console.error('[MessageService] Error sending message:', error);

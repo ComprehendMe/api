@@ -4,7 +4,6 @@ import { listAuth0CallbackUrlsForSetup } from './common/oauth-callback';
 import { isPlausibleGeminiApiKey } from './common/gemini-key';
 import { prisma } from './common/prisma';
 import { routify } from './common/routify';
-import './common/queue';
 import { createApp } from './entry';
 
 export const app = await createApp();
