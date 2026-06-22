@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { env } from './common/env';
 import { listAuth0CallbackUrlsForSetup } from './common/oauth-callback';
-import { isPlausibleGeminiApiKey } from './common/gemini-key';
+import { isPlausibleApiKey } from './common/ai-key';
 import { prisma } from './common/prisma';
 import { routify } from './common/routify';
 import { createApp } from './entry';
@@ -21,16 +21,16 @@ app.listen(env.PORT, async () => {
 			console.log(chalk.yellow(`  → ${url}`));
 		}
 	}
-	if (env.GEMINI_MOCK) {
+	if (env.AI_MOCK) {
 		console.warn(
 			chalk.yellow(
-				'GEMINI_MOCK=true — patient replies are simulated. Set a valid GEMINI_API_KEY and GEMINI_MOCK=false for real AI.',
+				'AI_MOCK=true — patient replies are simulated. Set AI_MOCK=false for real AI.',
 			),
 		);
-	} else if (!isPlausibleGeminiApiKey(env.GEMINI_API_KEY)) {
+	} else if (!isPlausibleApiKey(env.GROQ_API_KEY)) {
 		console.warn(
 			chalk.red(
-				'GEMINI_API_KEY looks invalid — set GEMINI_MOCK=true for local dev or add a key from https://aistudio.google.com/apikey',
+				'GROQ_API_KEY looks invalid — create a key at https://console.groq.com/keys and set it in your env.',
 			),
 		);
 	}

@@ -1,5 +1,5 @@
 import { prisma } from '../../common/prisma';
-import { askGemini } from '../../common/gemini';
+import { askGemini } from '../../common/ai';
 import { exception, http, httpCodes } from '../../common/request';
 import { genSnow } from '../../common/snow';
 

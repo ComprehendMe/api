@@ -153,25 +153,10 @@ export class ChatService {
 		}
 
 		await ChatService.endChatWithReviewCompat(chatId);
-		try {
-			await queueReviewGeneration(chatId);
-		} catch (error) {
-			// Queue failures should not block ending the conversation.
-			// If advanced review fields are available, mark as FAILED to avoid hanging PENDING state.
-			const message = error instanceof Error ? error.message : 'Review enqueue failed';
-			try {
-				await prisma.chat.update({
-					where: { id: chatId },
-					data: {
-						reviewStatus: 'FAILED',
-						reviewError: message.slice(0, 500),
-						reviewedAt: new Date(),
-					},
-				});
-			} catch {
-				// Compatibility mode: schema/client may not expose reviewStatus yet.
-			}
-		}
+		// Fire-and-forget: review generation runs in background
+		queueReviewGeneration(chatId).catch((error) =>
+			console.error('[Chats] Background review generation failed:', error),
+		);
 
 		await dragonfly.del(this.getUserChatsCacheKey(userId));
 		return { ok: true };

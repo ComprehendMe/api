@@ -53,8 +53,8 @@ export const env = e.cleanEnv(process.env, {
   }),
   GROQ_API_KEY: e.str(),
   GEMINI_API_KEY: e.str({ default: '' }),
-  /** When true, skips Gemini and returns simulated patient replies (local dev). */
-  GEMINI_MOCK: e.bool({ default: false }),
+  /** When true, skips AI and returns simulated patient replies (local dev). */
+  AI_MOCK: e.bool({ default: false }),
 
   CLOUDINARY_CLOUD_NAME: e.str(),
   CLOUDINARY_API_KEY: e.str(),

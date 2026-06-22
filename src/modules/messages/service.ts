@@ -1,4 +1,4 @@
-import { askGemini, createSystemPrompt, type PatientInfo } from '../../common/gemini';
+import { askGemini, createSystemPrompt, type PatientInfo, AiConfigurationError } from '../../common/ai';
 import { prisma } from '../../common/prisma';
 import { dragonfly } from '../../common/dragonfly';
 import { exception, http, httpCodes } from '../../common/request';
@@ -78,14 +78,14 @@ export class MessageService {
 				problems: [
 					{
 						name: patient.problem,
-						startDate: 'Desconhecida',
-						endDate: 'o momento atual',
+						startDate: 'Unknown',
+						endDate: 'ongoing',
 					},
 				],
 			};
 			const systemInstruction = createSystemPrompt(personaInfo);
 
-			console.log(`[Messages] Calling Gemini for Chat ${chatId}`);
+			console.log(`[Messages] Calling AI for Chat ${chatId}`);
 
 			const response = await askGemini(
 				systemInstruction,
@@ -112,6 +112,12 @@ export class MessageService {
 			};
 		} catch (error: any) {
 			console.error('[MessageService] Error sending message:', error);
+
+			if (error instanceof AiConfigurationError) {
+				throw exception(httpCodes[http.InternalServerError], http.InternalServerError, {
+					message: error.message,
+				});
+			}
 
 			if (error?.status) throw error;
 

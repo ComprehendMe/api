@@ -1,10 +1,10 @@
 import { env } from './env';
-import { isGeminiAuthError } from './gemini-key';
+import { isAuthError } from './ai-key';
 
-export class GeminiConfigurationError extends Error {
+export class AiConfigurationError extends Error {
 	constructor(message: string) {
 		super(message);
-		this.name = 'GeminiConfigurationError';
+		this.name = 'AiConfigurationError';
 	}
 }
 
@@ -45,6 +45,8 @@ ${problemList}
 1.  **Be the patient:** You are here to receive help. Answer the therapist's questions based on your persona and the problems listed.
 2.  **Be realistic:** Your replies should sound like a real person. Do not reveal everything at once. Let the therapist guide the conversation.
 3.  **Show emotion (in moderation):** Let your feelings about your problems come through.
+4.  **Match the therapist's language:** Always respond in the same language as the therapist. If they write in English, respond in English. If they write in Portuguese, respond in Portuguese. Never switch languages mid-conversation.
+5.  **No stage directions:** Do NOT use asterisks, parentheses, or any formatting for actions like *sighs*, *pauses*, or (hesitates). Express emotion through your words alone.
 
 Remember, ${botInfo.name}, the goal is to simulate a real therapy session so the professional can practise and improve their skills.`;
 }
@@ -71,6 +73,37 @@ function mockReviewResponse(moveContent: string): string {
 	});
 }
 
+function cleanResult(text: string): string {
+	return text.replace(/\*[^*]+\*/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+async function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function tryFallback(
+	context: 'chat' | 'review',
+	newMessage: string,
+	generate: (model: string, signal?: AbortSignal) => Promise<string>,
+): Promise<string> {
+	try {
+		const result = await generate('llama-3.1-8b-instant');
+		return cleanResult(result);
+	} catch (fallbackError) {
+		if (isAuthError(fallbackError)) {
+			throw new AiConfigurationError(
+				'Invalid GROQ_API_KEY. Create a key at https://console.groq.com/keys and set it in api/.env.',
+			);
+		}
+		if ((fallbackError as any)?.status === 429) {
+			console.warn('[Groq] Fallback quota exceeded, using mock fallback');
+			if (context === 'review') return mockReviewResponse(newMessage);
+			return mockPatientReply(newMessage);
+		}
+		throw fallbackError;
+	}
+}
+
 export async function askGemini(
 	systemInstruction: string,
 	history: Content[],
@@ -79,7 +112,7 @@ export async function askGemini(
 ) {
 	const context = options?.context ?? 'chat';
 
-	if (env.GEMINI_MOCK) {
+	if (env.AI_MOCK) {
 		void systemInstruction;
 		void history;
 		if (context === 'review') return mockReviewResponse(newMessage);
@@ -94,7 +127,7 @@ export async function askGemini(
 		contents.push({ role: 'user', parts: [{ text: newMessage }] });
 	}
 
-	async function generate(model: string) {
+	const generate = async function (model: string, signal?: AbortSignal) {
 		const messages = [
 			{ role: 'system', content: systemInstruction },
 			...contents.map((msg) => ({
@@ -112,6 +145,7 @@ export async function askGemini(
 					Authorization: `Bearer ${env.GROQ_API_KEY}`,
 				},
 				body: JSON.stringify({ model, messages }),
+				signal: signal ?? AbortSignal.timeout(30_000),
 			},
 		);
 
@@ -126,43 +160,38 @@ export async function askGemini(
 
 		const data = await response.json();
 		return data?.choices?.[0]?.message?.content || '';
-	}
+	};
 
 	try {
 		const result = await generate('llama-3.3-70b-versatile');
-		return result || '';
+		return cleanResult(result) || '';
 	} catch (error) {
-		if (isGeminiAuthError(error)) {
-			throw new GeminiConfigurationError(
+		if (isAuthError(error)) {
+			throw new AiConfigurationError(
 				'Invalid GROQ_API_KEY. Create a key at https://console.groq.com/keys and set it in api/.env.',
 			);
 		}
 
-		if ((error as any)?.status === 429) {
-			console.warn('[Groq] Quota exceeded, using mock fallback');
-			if (context === 'review') return mockReviewResponse(newMessage);
-			return mockPatientReply(newMessage);
-		}
+		const status = (error as any)?.status;
 
-		if ((error as any)?.status === 503) {
-			console.warn(
-				'[Groq] Primary model 503, trying fallback llama-3.1-8b-instant...',
-			);
+		if (status === 429 || status === 503) {
+			console.warn(`[Groq] ${status} on llama-3.3-70b-versatile, retrying in 1s...`);
+			await sleep(1000);
 			try {
-				const result = await generate('llama-3.1-8b-instant');
-				return result || '';
-			} catch (fallbackError) {
-				if (isGeminiAuthError(fallbackError)) {
-					throw new GeminiConfigurationError(
+				const result = await generate('llama-3.3-70b-versatile');
+				return cleanResult(result) || '';
+			} catch (retryError) {
+				if (isAuthError(retryError)) {
+					throw new AiConfigurationError(
 						'Invalid GROQ_API_KEY. Create a key at https://console.groq.com/keys and set it in api/.env.',
 					);
 				}
-				if ((fallbackError as any)?.status === 429) {
-					console.warn('[Groq] Fallback quota exceeded, using mock fallback');
-					if (context === 'review') return mockReviewResponse(newMessage);
-					return mockPatientReply(newMessage);
+				const retryStatus = (retryError as any)?.status;
+				if (retryStatus === 429 || retryStatus === 503) {
+					console.warn(`[Groq] ${retryStatus} after retry, trying fallback llama-3.1-8b-instant...`);
+					return await tryFallback(context, newMessage, generate);
 				}
-				throw fallbackError;
+				throw retryError;
 			}
 		}
 
