@@ -1,4 +1,4 @@
-/** Google Gemini API keys always start with "AIza". */
+/** Google Gemini API keys start with "AIza" (legacy) or "AQ." (auth key). */
 export function normalizeGeminiApiKey(key: string): string {
 	const trimmed = key.trim();
 	// Common copy-paste typo: missing leading "A"
@@ -7,7 +7,7 @@ export function normalizeGeminiApiKey(key: string): string {
 }
 
 export function isPlausibleGeminiApiKey(key: string): boolean {
-	return /^AIza[\w-]{20,}$/.test(key);
+	return /^(AIza|AQ\.)[\w-]{20,}$/.test(key);
 }
 
 export function isGeminiAuthError(error: unknown): boolean {
