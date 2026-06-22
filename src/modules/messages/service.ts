@@ -59,56 +59,14 @@ export class MessageService {
 				dragonfly.del(`user:${chat.userId}:chats`),
 			]).catch((err) => console.error('Erro ao atualizar chat/cache:', err));
 
-			const recentHistory = await prisma.message.findMany({
-				where: { chatId },
-				orderBy: { id: 'desc' },
-				take: 20,
-			});
-			const history = recentHistory.reverse();
-
-			const formattedHistory = history.map((msg) => ({
-				role: msg.role,
-				parts: [{ text: msg.content }],
-			}));
-
-			const personaInfo: PatientInfo = {
-				name: patient.name,
-				age: patient.age,
-				nacionality: patient.nationality,
-				problems: [
-					{
-						name: patient.problem,
-						startDate: 'Unknown',
-						endDate: 'ongoing',
-					},
-				],
-			};
-			const systemInstruction = createSystemPrompt(personaInfo);
-
-			console.log(`[Messages] Calling AI for Chat ${chatId}`);
-
-			const response = await askGemini(
-				systemInstruction,
-				formattedHistory,
-				content,
+			// Fire-and-forget: AI reply generation runs in background
+			this.generateAiReply(chatId, patient, content).catch((err) =>
+				console.error('[Messages] Background AI reply failed:', err),
 			);
-
-			const modelMessageId = genSnow();
-			await prisma.message.create({
-				data: {
-					id: modelMessageId,
-					chatId,
-					role: 'model',
-					content: response || '',
-				},
-			});
-
-			console.log('[Messages] Model response saved');
 
 			return {
 				status: 'sent',
 				userMessageId: userMessageId.toString(),
-				modelMessageId: modelMessageId.toString(),
 			};
 		} catch (error: any) {
 			console.error('[MessageService] Error sending message:', error);
@@ -123,6 +81,58 @@ export class MessageService {
 
 			throw new Error(`Failed to process message: ${error.message}`);
 		}
+	}
+
+	private static async generateAiReply(
+		chatId: bigint,
+		patient: { name: string; age: number; nationality: string; problem: string },
+		content: string,
+	) {
+		const recentHistory = await prisma.message.findMany({
+			where: { chatId },
+			orderBy: { id: 'desc' },
+			take: 20,
+		});
+		const history = recentHistory.reverse();
+
+		const formattedHistory = history.map((msg) => ({
+			role: msg.role,
+			parts: [{ text: msg.content }],
+		}));
+
+		const personaInfo: PatientInfo = {
+			name: patient.name,
+			age: patient.age,
+			nacionality: patient.nationality,
+			problems: [
+				{
+					name: patient.problem,
+					startDate: 'Unknown',
+					endDate: 'ongoing',
+				},
+			],
+		};
+		const systemInstruction = createSystemPrompt(personaInfo);
+
+		console.log(`[Messages] Calling AI for Chat ${chatId}`);
+
+		const response = await askGemini(
+			systemInstruction,
+			formattedHistory,
+			content,
+		);
+
+		const modelMessageId = genSnow();
+		await prisma.message.create({
+			data: {
+				id: modelMessageId,
+				chatId,
+				role: 'model',
+				content: response || '',
+			},
+		});
+
+		console.log('[Messages] Model response saved');
 	}
 
 	private static async getAuthorizedChat(chatId: bigint, userId: bigint) {
