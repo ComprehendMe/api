@@ -1,10 +1,7 @@
-import { type Content, GoogleGenAI } from '@google/genai';
 import { env } from './env';
 import { isGeminiAuthError } from './gemini-key';
 
-const ai = new GoogleGenAI({
-	apiKey: env.GEMINI_API_KEY,
-});
+const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 export class GeminiConfigurationError extends Error {
 	constructor(message: string) {
@@ -22,6 +19,15 @@ export interface PatientInfo {
 		startDate: string;
 		endDate: string;
 	}[];
+}
+
+interface ContentPart {
+	text: string;
+}
+
+interface Content {
+	role: string;
+	parts: ContentPart[];
 }
 
 export function createSystemPrompt(botInfo: PatientInfo): string {
@@ -82,7 +88,7 @@ export async function askGemini(
 		return mockPatientReply(newMessage);
 	}
 
-	let contents = [...history];
+	const contents = [...history];
 	const lastMsg = contents[contents.length - 1];
 	const lastText = lastMsg?.parts?.[0]?.text;
 
@@ -91,24 +97,43 @@ export async function askGemini(
 	}
 
 	async function generate(model: string) {
-		return ai.models.generateContent({
-			model,
-			config: {
-				systemInstruction: {
-					parts: [{ text: systemInstruction }],
+		const response = await fetch(
+			`${API_BASE}/models/${model}:generateContent`,
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-goog-api-key': env.GEMINI_API_KEY,
 				},
+				body: JSON.stringify({
+					contents,
+					systemInstruction: {
+						parts: [{ text: systemInstruction }],
+					},
+				}),
 			},
-			contents,
-		});
+		);
+
+		if (!response.ok) {
+			const body = await response.json().catch(() => ({}));
+			const err = new Error(
+				body?.error?.message || `Gemini API error: ${response.status}`,
+			);
+			(err as any).status = response.status;
+			throw err;
+		}
+
+		const data = await response.json();
+		return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 	}
 
 	try {
 		const result = await generate('gemini-2.0-flash');
-		return result.text || '';
+		return result || '';
 	} catch (error) {
 		if (isGeminiAuthError(error)) {
 			throw new GeminiConfigurationError(
-				'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env (must start with AIza).',
+				'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env.',
 			);
 		}
 
@@ -124,11 +149,11 @@ export async function askGemini(
 			);
 			try {
 				const result = await generate('gemini-2.5-flash');
-				return result.text || '';
+				return result || '';
 			} catch (fallbackError) {
 				if (isGeminiAuthError(fallbackError)) {
 					throw new GeminiConfigurationError(
-						'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env (must start with AIza).',
+						'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env.',
 					);
 				}
 				if ((fallbackError as any)?.status === 429) {
