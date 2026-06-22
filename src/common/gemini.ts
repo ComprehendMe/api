@@ -1,8 +1,6 @@
 import { env } from './env';
 import { isGeminiAuthError } from './gemini-key';
 
-const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-
 export class GeminiConfigurationError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -97,67 +95,70 @@ export async function askGemini(
 	}
 
 	async function generate(model: string) {
+		const messages = [
+			{ role: 'system', content: systemInstruction },
+			...contents.map((msg) => ({
+				role: msg.role === 'model' ? 'assistant' : msg.role,
+				content: msg.parts[0]?.text || '',
+			})),
+		];
+
 		const response = await fetch(
-			`${API_BASE}/models/${model}:generateContent`,
+			'https://api.groq.com/openai/v1/chat/completions',
 			{
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'x-goog-api-key': env.GEMINI_API_KEY,
+					Authorization: `Bearer ${env.GROQ_API_KEY}`,
 				},
-				body: JSON.stringify({
-					contents,
-					systemInstruction: {
-						parts: [{ text: systemInstruction }],
-					},
-				}),
+				body: JSON.stringify({ model, messages }),
 			},
 		);
 
 		if (!response.ok) {
 			const body = await response.json().catch(() => ({}));
 			const err = new Error(
-				body?.error?.message || `Gemini API error: ${response.status}`,
+				body?.error?.message || `Groq API error: ${response.status}`,
 			);
 			(err as any).status = response.status;
 			throw err;
 		}
 
 		const data = await response.json();
-		return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+		return data?.choices?.[0]?.message?.content || '';
 	}
 
 	try {
-		const result = await generate('gemini-2.0-flash');
+		const result = await generate('llama-3.3-70b-versatile');
 		return result || '';
 	} catch (error) {
 		if (isGeminiAuthError(error)) {
 			throw new GeminiConfigurationError(
-				'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env.',
+				'Invalid GROQ_API_KEY. Create a key at https://console.groq.com/keys and set it in api/.env.',
 			);
 		}
 
 		if ((error as any)?.status === 429) {
-			console.warn('[Gemini] Quota exceeded, using mock fallback');
+			console.warn('[Groq] Quota exceeded, using mock fallback');
 			if (context === 'review') return mockReviewResponse(newMessage);
 			return mockPatientReply(newMessage);
 		}
 
 		if ((error as any)?.status === 503) {
 			console.warn(
-				'[Gemini] Primary model 503, trying fallback gemini-2.5-flash...',
+				'[Groq] Primary model 503, trying fallback llama-3.1-8b-instant...',
 			);
 			try {
-				const result = await generate('gemini-2.5-flash');
+				const result = await generate('llama-3.1-8b-instant');
 				return result || '';
 			} catch (fallbackError) {
 				if (isGeminiAuthError(fallbackError)) {
 					throw new GeminiConfigurationError(
-						'Invalid GEMINI_API_KEY. Create a key at https://aistudio.google.com/apikey and set it in api/.env.',
+						'Invalid GROQ_API_KEY. Create a key at https://console.groq.com/keys and set it in api/.env.',
 					);
 				}
 				if ((fallbackError as any)?.status === 429) {
-					console.warn('[Gemini] Fallback quota exceeded, using mock fallback');
+					console.warn('[Groq] Fallback quota exceeded, using mock fallback');
 					if (context === 'review') return mockReviewResponse(newMessage);
 					return mockPatientReply(newMessage);
 				}

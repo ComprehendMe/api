@@ -1,5 +1,4 @@
 import * as e from "envalid"
-import { normalizeGeminiApiKey } from "./gemini-key"
 
 export const env = e.cleanEnv(process.env, {
   PORT: e.port(),
@@ -52,10 +51,8 @@ export const env = e.cleanEnv(process.env, {
     default: "",
     desc: "Additional comma-separated CORS origins (e.g. https://comprehendme.vercel.app)",
   }),
-  GEMINI_API_KEY: e.str({
-    desc: "Google AI Studio API key (https://aistudio.google.com/apikey)",
-    transform: normalizeGeminiApiKey,
-  }),
+  GROQ_API_KEY: e.str(),
+  GEMINI_API_KEY: e.str({ default: '' }),
   /** When true, skips Gemini and returns simulated patient replies (local dev). */
   GEMINI_MOCK: e.bool({ default: false }),
 
