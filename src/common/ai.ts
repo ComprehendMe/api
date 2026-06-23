@@ -57,6 +57,12 @@ function mockPatientReply(userMessage: string): string {
 	return `Thank you for sharing that with me. When you said "${snippet}", it felt like this matters to you. Can you help me understand what you are feeling right now?`;
 }
 
+function mockPatientReplyPt(userMessage: string): string {
+	const snippet =
+		userMessage.length > 80 ? `${userMessage.slice(0, 80)}…` : userMessage;
+	return `Obrigado por partilhares isso comigo. Quando disseste "${snippet}", parece que isso é importante para ti. Podes ajudar-me a perceber o que estás a sentir neste momento?`;
+}
+
 const QUALITIES = ['strong', 'adequate', 'needs_attention', 'needs_adjustment'] as const;
 
 function mockReviewResponse(moveContent: string): string {
@@ -73,6 +79,21 @@ function mockReviewResponse(moveContent: string): string {
 	});
 }
 
+function mockReviewResponsePt(moveContent: string): string {
+	const score = Math.ceil(Math.random() * 6) + 2;
+	const qualityLabels = { strong: 'forte', adequate: 'adequado', needs_attention: 'precisa_atenção', needs_adjustment: 'precisa_ajuste' };
+	const quality = score >= 8 ? 'strong' : score >= 5 ? 'adequate' : score >= 3 ? 'needs_attention' : 'needs_adjustment';
+	const snippets = moveContent.length > 60 ? `${moveContent.slice(0, 60)}…` : moveContent;
+	return JSON.stringify({
+		score,
+		quality,
+		category: 'Comunicação',
+		feedback: `A intervenção "${snippets}" foi analisada. Considera explorar melhor a perspetiva do paciente enquanto manténs a relação terapêutica.`,
+		highlights: ['Tentativa de escuta ativa', 'Abordagem centrada no paciente'],
+		improvements: ['Fazer mais perguntas abertas', 'Validar as emoções do paciente'],
+	});
+}
+
 function cleanResult(text: string): string {
 	return text.replace(/\*[^*]+\*/g, '').replace(/\s{2,}/g, ' ').trim();
 }
@@ -84,6 +105,7 @@ async function sleep(ms: number) {
 async function tryFallback(
 	context: 'chat' | 'review',
 	newMessage: string,
+	language: string,
 	generate: (model: string, signal?: AbortSignal) => Promise<string>,
 ): Promise<string> {
 	try {
@@ -97,8 +119,8 @@ async function tryFallback(
 		}
 		if ((fallbackError as any)?.status === 429) {
 			console.warn('[Groq] Fallback quota exceeded, using mock fallback');
-			if (context === 'review') return mockReviewResponse(newMessage);
-			return mockPatientReply(newMessage);
+			if (context === 'review') return language === 'pt' ? mockReviewResponsePt(newMessage) : mockReviewResponse(newMessage);
+			return language === 'pt' ? mockPatientReplyPt(newMessage) : mockPatientReply(newMessage);
 		}
 		throw fallbackError;
 	}
@@ -108,15 +130,16 @@ export async function askGemini(
 	systemInstruction: string,
 	history: Content[],
 	newMessage: string,
-	options?: { context?: 'chat' | 'review' },
+	options?: { context?: 'chat' | 'review'; language?: string },
 ) {
 	const context = options?.context ?? 'chat';
+	const language = options?.language ?? 'en';
 
 	if (env.AI_MOCK) {
 		void systemInstruction;
 		void history;
-		if (context === 'review') return mockReviewResponse(newMessage);
-		return mockPatientReply(newMessage);
+		if (context === 'review') return language === 'pt' ? mockReviewResponsePt(newMessage) : mockReviewResponse(newMessage);
+		return language === 'pt' ? mockPatientReplyPt(newMessage) : mockPatientReply(newMessage);
 	}
 
 	const contents = [...history];
@@ -189,7 +212,7 @@ export async function askGemini(
 				const retryStatus = (retryError as any)?.status;
 				if (retryStatus === 429 || retryStatus === 503) {
 					console.warn(`[Groq] ${retryStatus} after retry, trying fallback llama-3.1-8b-instant...`);
-					return await tryFallback(context, newMessage, generate);
+					return await tryFallback(context, newMessage, language, generate);
 				}
 				throw retryError;
 			}

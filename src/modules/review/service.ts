@@ -446,12 +446,12 @@ export class ReviewService {
     return lines.join('\n');
   }
 
-  static async recompute(chatId: bigint, userId: bigint) {
-    await ReviewService.generateReviewForChat(chatId, userId);
+  static async recompute(chatId: bigint, userId: bigint, language = 'en') {
+    await ReviewService.generateReviewForChat(chatId, userId, language);
     return { ok: true };
   }
 
-  static async generateReviewForChat(chatId: bigint, userId?: bigint) {
+  static async generateReviewForChat(chatId: bigint, userId?: bigint, language = 'en') {
     const hasAdvancedReviewModel = hasMessageReviewModel();
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
@@ -491,6 +491,7 @@ export class ReviewService {
           .map((m) => `${m.role === 'user' ? 'Therapist' : 'Patient'}: ${m.content}`)
           .join('\n');
 
+        const analysisLang = language === 'pt' ? 'Portuguese' : 'English';
         const analysisPrompt = `
 You are a clinical supervisor evaluating a trainee therapist's intervention.
 IMPORTANT: Evaluate ONLY the therapist intervention. Never evaluate the patient replies.
@@ -503,7 +504,7 @@ ${contextText}
 Intervention to evaluate:
 "${move.content}"
 
-Respond in English with JSON only, following this exact schema:
+Respond in ${analysisLang} with JSON only, following this exact schema:
 {
   "score": <integer 0-10>,
   "quality": <"strong" | "adequate" | "needs_attention" | "needs_adjustment">,
@@ -513,7 +514,7 @@ Respond in English with JSON only, following this exact schema:
   "improvements": [<string>, ...]
 }`;
 
-        const raw = await askGemini(analysisPrompt, [], '', { context: 'review' });
+        const raw = await askGemini(analysisPrompt, [], '', { context: 'review', language });
         moves.push(parseAnalysis(move, raw, i));
       }
 

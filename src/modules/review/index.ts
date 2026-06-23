@@ -23,7 +23,8 @@ export const route = (app: Elysia) => {
         async (context) => {
           const user = (context as typeof context & { user?: { id: bigint } }).user;
           if (!user) throw new Error('Unauthorized');
-          return await ReviewService.recompute(context.params.id, user.id);
+          const lang = context.request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] || 'en';
+          return await ReviewService.recompute(context.params.id, user.id, lang);
         },
         {
           params: t.Object({ id: ID_SCHEMA }),
