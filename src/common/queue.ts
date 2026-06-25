@@ -1,5 +1,5 @@
 import { ReviewService } from '../modules/review/service';
 
-export async function queueReviewGeneration(chatId: bigint) {
-	await ReviewService.generateReviewForChat(chatId);
+export async function queueReviewGeneration(chatId: bigint, language = 'en') {
+	await ReviewService.generateReviewForChat(chatId, undefined, language);
 }

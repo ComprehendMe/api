@@ -145,7 +145,7 @@ export class ChatService {
 		return { ok: true };
 	}
 
-	public static async end(userId: bigint, chatId: bigint) {
+	public static async end(userId: bigint, chatId: bigint, language = 'en') {
 		const chat = await this.getOwnedChat(userId, chatId);
 
 		if (chat.endedAt) {
@@ -154,7 +154,7 @@ export class ChatService {
 
 		await ChatService.endChatWithReviewCompat(chatId);
 		// Fire-and-forget: review generation runs in background
-		queueReviewGeneration(chatId).catch((error) =>
+		queueReviewGeneration(chatId, language).catch((error) =>
 			console.error('[Chats] Background review generation failed:', error),
 		);
 

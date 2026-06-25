@@ -67,7 +67,8 @@ export const route = (app: Elysia) => {
 				async (context) => {
 					const user = (context as typeof context & { user?: { id: bigint } }).user;
 					if (!user) throw new Error('Unauthorized');
-					return await ChatService.end(user.id, context.params.id);
+					const lang = context.request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] || 'en';
+					return await ChatService.end(user.id, context.params.id, lang);
 				},
 				{
 					params: t.Object({ id: ID_SCHEMA }),
